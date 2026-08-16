@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>旅程調整 | Journey Planner</title>
+<meta name="theme-color" content="#1F3A5F">
+<meta name="color-scheme" content="light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="旅程調整">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1F3A5F;
+    --ink-soft:#5B6B7D;
+    --paper:#EDF1F4;
+    --card:#FFFFFF;
+    --stamp-red:#C4432B;
+    --ok:#2F7A5C;
+    --warn:#C4432B;
+    --tight:#C98A2B;
+    --line-neutral:#C6CCD2;
+    --border:#DCE2E7;
+    --walk:#8B8F94;
+    --train:#2F7A5C;
+    --car:#C98A2B;
+    --flight:#2A6FA8;
+    --radius-lg:18px;
+    --radius-md:12px;
+    --radius-sm:8px;
+    --font-display:'Noto Sans JP',system-ui,-apple-system,'Hiragino Sans',sans-serif;
+    --font-body:'Noto Sans JP',system-ui,-apple-system,'Hiragino Sans',sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-body);
+    -webkit-tap-highlight-color:transparent;
+    overscroll-behavior-y:none;
+  }
+  button,input,select,textarea{font-family:inherit;}
+  button{cursor:pointer;background:none;border:none;color:inherit;}
+  .hidden{display:none !important;}
+  :focus-visible{outline:2px solid var(--stamp-red);outline-offset:2px;}
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:0.001ms !important;transition-duration:0.001ms !important;}
+  }
+
+  #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--paper);position:relative;display:flex;flex-direction:column;}
+
+  /* ---------- Onboarding ---------- */
+  .screen{min-height:100vh;display:flex;flex-direction:column;}
+  #onboarding{align-items:center;justify-content:center;padding:24px;}
+  .onboarding-card{
+    background:var(--card);
+    border-radius:var(--radius-lg);
+    padding:28px 22px 24px;
+    width:100%;
+    box-shadow:0 8px 28px rgba(31,58,95,.12);
+    position:relative;
+    overflow:hidden;
+  }
+  .onboarding-stripe{
+    position:absolute;top:0;left:0;right:0;height:6px;
+    background:repeating-linear-gradient(-45deg,var(--stamp-red) 0 10px,#fff 10px 20px,var(--ink) 20px 30px,#fff 30px 40px);
+  }
+  #onboarding h1{font-family:var(--font-display);font-weight:900;font-size:24px;margin:14px 0 4px;letter-spacing:.02em;}
+  .onboarding-sub{color:var(--ink-soft);font-size:14px;margin:0 0 20px;line-height:1.6;}
+
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.02em;}
+  .field input[type=text],.field input[type=date],.field input[type=time],.field input[type=number],.field input[type=password],.field select,.field textarea{
+    width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;background:#fff;color:var(--ink);
+  }
+  .field textarea{resize:vertical;font-family:var(--font-body);}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ink);}
+  .field-row{display:flex;gap:12px;}
+  .field-row .field{flex:1;}
+  .hint{font-size:12px;color:var(--ink-soft);line-height:1.6;margin:6px 0 0;}
+  .pin-field{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;}
+  .pin-checkbox-label{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--ink);cursor:pointer;margin:0;}
+  .pin-checkbox-label input{width:18px;height:18px;flex-shrink:0;accent-color:var(--stamp-red);}
+
+  .btn{padding:12px 18px;border-radius:999px;font-weight:700;font-size:14px;letter-spacing:.02em;transition:transform .12s,opacity .12s;}
+  .btn:active{transform:scale(.97);}
+  .btn-block{width:100%;}
+  .btn-primary{background:var(--ink);color:#fff;}
+  .btn-outline{background:#fff;color:var(--ink);border:1.5px solid var(--border);}
+  .btn-danger-outline{background:#fff;color:var(--warn);border:1.5px solid var(--warn);}
+
+  /* ---------- Top bar ---------- */
+  #topbar{position:sticky;top:0;z-index:20;background:var(--ink);color:#fff;}
+  .topbar-stripe{height:5px;background:repeating-linear-gradient(-45deg,var(--stamp-red) 0 9px,#fff 9px 18px,#3E5878 18px 27px,#fff 27px 36px);}
+  .topbar-main{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;gap:10px;}
+  .topbar-title{font-family:var(--font-display);font-weight:900;font-size:17px;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .total-pill{
+    display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;
+    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.35);
+    border-radius:var(--radius-sm);padding:6px 12px;
+    position:relative;
+  }
+  .total-pill::after{content:'';position:absolute;left:10px;right:10px;top:50%;border-top:1px dashed rgba(255,255,255,.35);}
+  .total-label{font-size:9px;color:rgba(255,255,255,.7);letter-spacing:.08em;position:relative;z-index:1;background:transparent;}
+  #tripTotal{font-family:var(--font-mono);font-weight:700;font-size:15px;position:relative;z-index:1;}
+  .icon-btn{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .icon-btn:active{background:rgba(0,0,0,.06);}
+  .icon-btn-light:active{background:rgba(255,255,255,.15);}
+  .icon-btn[disabled]{opacity:.25;pointer-events:none;}
+
+  /* ---------- Day tabs ---------- */
+  .day-tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 14px;scrollbar-width:none;background:var(--paper);position:sticky;top:41px;z-index:19;border-bottom:1px solid var(--border);}
+  .day-tabs::-webkit-scrollbar{display:none;}
+  .day-tab{flex-shrink:0;padding:8px 14px;border-radius:var(--radius-md);border:1.5px solid var(--ink);background:#fff;color:var(--ink);text-align:center;min-width:64px;}
+  .day-tab-num{display:block;font-size:11px;font-weight:700;border-bottom:1px dashed rgba(31,58,95,.3);padding-bottom:3px;margin-bottom:3px;}
+  .day-tab-date{display:block;font-family:var(--font-mono);font-size:13px;font-weight:700;}
+  .day-tab.active{background:var(--ink);color:#fff;}
+  .day-tab.active .day-tab-num{border-bottom-color:rgba(255,255,255,.35);}
+
+  /* ---------- Day content ---------- */
+  #dayContent{flex:1;padding:16px 14px 120px;}
+  .day-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;}
+  .day-head-date{font-family:var(--font-display);font-weight:900;font-size:18px;}
+  .day-head-label{font-size:12px;font-weight:500;color:var(--ink-soft);}
+  .day-head-subtotal{font-family:var(--font-mono);font-weight:700;color:var(--stamp-red);font-size:14px;}
+  .empty-state{text-align:center;color:var(--ink-soft);font-size:14px;padding:48px 12px;line-height:1.8;}
+
+  .card-list{display:flex;flex-direction:column;}
+  .card{
+    display:flex;background:var(--card);border-radius:var(--radius-md);
+    box-shadow:0 2px 8px rgba(31,58,95,.08);overflow:hidden;position:relative;
+  }
+  .card-bar{width:5px;flex-shrink:0;background:var(--bar-color,var(--ink));}
+  .card-body{flex:1;padding:12px 12px 10px 14px;min-width:0;}
+  .card-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  .card-time-group{display:flex;align-items:center;gap:4px;}
+  .card-time{font-family:var(--font-mono);font-weight:700;font-size:14px;color:var(--ink);}
+  .card-icon{font-size:16px;}
+  .card-title{font-weight:700;font-size:15.5px;margin-bottom:2px;word-break:break-word;}
+  .card-loc{font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;word-break:break-word;}
+  .card-row3{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;}
+  .chip-transport{background:color-mix(in srgb, var(--chip-color) 14%, white);color:var(--chip-color);border:1px solid color-mix(in srgb, var(--chip-color) 40%, white);}
+  .chip-cost{font-family:var(--font-mono);background:#FBEDE9;color:var(--stamp-red);}
+  .chip-cost small{font-weight:500;opacity:.75;}
+  .card-notes{font-size:12px;color:var(--ink-soft);font-style:italic;margin-top:6px;border-top:1px dashed var(--border);padding-top:6px;}
+  .card-actions{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:6px 6px;border-left:1px solid var(--border);flex-shrink:0;}
+  .card-actions .icon-btn{width:26px;height:26px;font-size:10px;color:var(--ink-soft);}
+  .card-actions .icon-btn.pin-btn{font-size:13px;opacity:.32;}
+  .card-actions .icon-btn.pin-btn.active{opacity:1;background:#FBEDE9;border-radius:50%;}
+  .card.pinned{box-shadow:0 2px 8px rgba(31,58,95,.08), inset 0 0 0 1.5px var(--stamp-red);}
+  .pin-indicator{font-size:12px;line-height:1;}
+
+  .connector{width:100%;display:flex;align-items:center;justify-content:center;position:relative;height:38px;padding:0;}
+  .connector-line{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:3px;background:var(--line-color,var(--line-neutral));border-radius:2px;}
+  .connector.conflict .connector-line{background:var(--warn);animation:pulseLine 1.4s ease-in-out infinite;}
+  .connector.tight .connector-line{background:var(--tight);}
+  .connector-chip{position:relative;z-index:1;background:var(--paper);border:1px solid var(--border);border-radius:999px;padding:2px 10px;font-family:var(--font-mono);font-size:10.5px;font-weight:700;color:var(--ink-soft);}
+  .connector.conflict .connector-chip{border-color:var(--warn);color:var(--warn);}
+  .connector.tight .connector-chip{border-color:var(--tight);color:var(--tight);}
+  .connector.ok .connector-chip{border-color:var(--ok);color:var(--ok);}
+  @keyframes pulseLine{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  /* ---------- FABs ---------- */
+  .fabs{position:fixed;right:calc(50% - 240px + 18px);bottom:22px;display:flex;flex-direction:column;align-items:center;gap:12px;z-index:22;}
+  .cascade-banner{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(12px);width:calc(100% - 36px);max-width:444px;background:var(--ink);color:#fff;border-radius:var(--radius-md);padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:26;display:flex;align-items:center;gap:12px;opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;}
+  .cascade-banner.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+  .cascade-banner span{font-size:13px;line-height:1.5;flex:1;}
+  .cascade-banner-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+  .btn-sm{padding:8px 12px;font-size:12px;white-space:nowrap;}
+  @media (max-width:480px){.fabs{right:18px;}}
+  .fab{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(31,58,95,.35);font-size:24px;}
+  .fab-primary{background:var(--stamp-red);color:#fff;}
+  .fab-secondary{width:46px;height:46px;background:#fff;color:var(--ink);border:1.5px solid var(--border);font-size:19px;}
+  .fab:active{transform:scale(.94);}
+
+  /* ---------- Sheets / modals ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(15,25,38,.45);z-index:30;opacity:0;transition:opacity .2s;}
+  .overlay.open{opacity:1;}
+  .sheet{
+    position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);
+    width:100%;max-width:480px;max-height:88vh;background:var(--paper);
+    border-radius:20px 20px 0 0;z-index:31;display:flex;flex-direction:column;
+    transition:transform .22s cubic-bezier(.2,.8,.2,1);box-shadow:0 -8px 30px rgba(0,0,0,.2);
+  }
+  .sheet.open{transform:translate(-50%,0);}
+  .sheet-tall{height:88vh;}
+  .sheet-handle{width:38px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 2px;flex-shrink:0;}
+  .sheet-header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 10px;flex-shrink:0;border-bottom:1px solid var(--border);}
+  .sheet-header h3{margin:0;font-family:var(--font-display);font-size:16px;font-weight:900;}
+  .sheet-body{padding:16px;overflow-y:auto;flex:1;}
+  .sheet-footer{display:flex;gap:10px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border);flex-shrink:0;background:var(--paper);}
+  .sheet-footer .btn{flex:1;}
+
+  .chip-select{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip-option{padding:8px 12px;border-radius:999px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:600;}
+  .chip-option.selected{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .settings-actions{display:flex;gap:10px;margin:18px 0 14px;}
+  .settings-actions .btn{flex:1;}
+
+  /* ---------- Chat ---------- */
+  .chat-scope-banner{margin:10px 16px 0;padding:8px 12px;background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12.5px;color:var(--ink-soft);flex-shrink:0;}
+  .chat-messages{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;}
+  .bubble{max-width:85%;padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+  .bubble.user{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:4px;}
+  .bubble.assistant{align-self:flex-start;background:#fff;border:1px solid var(--border);border-bottom-left-radius:4px;}
+  .bubble.assistant.error{border-color:var(--warn);color:var(--warn);}
+  .bubble.hint{align-self:flex-start;background:transparent;color:var(--ink-soft);font-size:12.5px;font-style:italic;}
+  .suggestion-card{align-self:flex-start;max-width:85%;background:#FBEDE9;border:1px solid var(--stamp-red);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;}
+  .suggestion-card h5{margin:0 0 6px;font-size:12px;color:var(--stamp-red);letter-spacing:.02em;}
+  .suggestion-row{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12.5px;margin-bottom:2px;}
+  .suggestion-row em{color:var(--stamp-red);font-style:normal;font-family:var(--font-body);font-size:11px;}
+  .suggestion-apply{margin-top:8px;width:100%;padding:8px;border-radius:8px;background:var(--stamp-red);color:#fff;font-weight:700;font-size:13px;}
+  .suggestion-apply[disabled]{opacity:.6;}
+  .suggestion-apply.failed{background:var(--line-neutral);color:var(--ink-soft);}
+  .suggestion-apply-all{align-self:flex-start;width:85%;max-width:85%;margin-top:2px;padding:10px 12px;border-radius:10px;background:var(--ink);color:#fff;font-weight:700;font-size:13px;box-shadow:0 2px 8px rgba(31,58,95,.25);}
+  .suggestion-apply-all:active{transform:scale(.98);}
+  .suggestion-card.suggestion-add{background:#EAF3EE;border-color:var(--ok);}
+  .suggestion-card.suggestion-add h5{color:var(--ok);}
+  .suggestion-card.suggestion-add .suggestion-apply{background:var(--ok);}
+  .chat-loading{align-self:flex-start;color:var(--ink-soft);font-size:13px;font-style:italic;}
+  .chat-input-row{display:flex;gap:8px;padding:10px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--paper);flex-shrink:0;}
+  .chat-input-row input{flex:1;padding:11px 13px;border-radius:999px;border:1.5px solid var(--border);font-size:14px;background:#fff;}
+  .chat-input-row .btn{padding:10px 16px;}
+
+  /* ---------- Cost drawer ---------- */
+  .cost-section{margin-bottom:18px;}
+  .cost-section h4{font-size:12px;color:var(--ink-soft);letter-spacing:.06em;margin:0 0 8px;}
+  .cost-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border);font-size:14px;font-family:var(--font-mono);}
+  .cost-row.sub{font-size:13px;}
+  .cost-total{display:flex;justify-content:space-between;padding-top:10px;border-top:2px solid var(--ink);font-weight:900;font-size:17px;font-family:var(--font-mono);}
+  .muted{color:var(--ink-soft);font-size:13px;}
+</style>
+</head>
+<body>
+<div id="errorBanner" class="hidden" style="position:fixed;top:0;left:0;right:0;z-index:999;background:#C4432B;color:#fff;padding:10px 14px;font-size:12px;font-family:monospace;white-space:pre-wrap;max-height:40vh;overflow:auto;"></div>
+<div id="app">
+
+  <!-- ========== Onboarding ========== -->
+  <div id="onboarding" class="screen">
+    <div class="onboarding-card">
+      <div class="onboarding-stripe"></div>
+      <h1>旅程調整</h1>
+      <p class="onboarding-sub">出発日と泊数を入力して、旅の計画をはじめましょう。あとから変更もできます。</p>
+      <form id="onboardingForm">
+        <div class="field">
+          <label for="obName">旅行名（任意）</label>
+          <input type="text" id="obName" placeholder="例：京都・大阪の旅">
+        </div>
+        <div class="field">
+          <label for="obStart">出発日</label>
+          <input type="date" id="obStart">
+          <script>document.getElementById('obStart').value = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);</script>
+        </div>
+        <div class="field">
+          <label for="obNights">泊数</label>
+          <input type="number" id="obNights" min="0" max="60" value="2">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="obAdults">大人の人数</label>
+            <input type="number" id="obAdults" min="0" max="20" value="2">
+          </div>
+          <div class="field">
+            <label for="obChildren">子供（小学生）の人数</label>
+            <input type="number" id="obChildren" min="0" max="20" value="0">
+          </div>
+        </div>
+        <button type="button" id="createTripBtn" class="btn btn-primary btn-block">旅程をつくる</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========== Main ========== -->
+  <div id="main" class="screen hidden" style="min-height:auto;">
+    <header id="topbar">
+      <div class="topbar-stripe"></div>
+      <div class="topbar-main">
+        <div class="topbar-title" id="tripName">旅行</div>
+        <div class="topbar-right">
+          <button type="button" class="total-pill" id="tripTotalBtn">
+            <span class="total-label">合計費用</span>
+            <span id="tripTotal">¥0</span>
+          </button>
+          <button type="button" class="icon-btn icon-btn-light" id="settingsBtn" aria-label="設定">⚙️</button>
+        </div>
+      </div>
+    </header>
+    <nav class="day-tabs" id="dayTabs"></nav>
+    <main id="dayContent"></main>
+  </div>
+
+  <div id="cascadeBanner" class="cascade-banner hidden">
+    <span id="cascadeBannerText"></span>
+    <div class="cascade-banner-actions">
+      <button type="button" id="cascadeBannerYes" class="btn btn-primary btn-sm">時刻表で調整</button>
+      <button type="button" id="cascadeBannerNo" class="icon-btn icon-btn-light" aria-label="閉じる">×</button>
+    </div>
+  </div>
+
+  <div class="fabs hidden" id="fabs">
+    <button type="button" class="fab fab-secondary" id="fabChat" aria-label="AIに相談">💬</button>
+    <button type="button" class="fab fab-primary" id="fabAdd" aria-label="予定を追加">＋</button>
+  </div>
+
+  <div class="overlay hidden" id="overlay"></div>
+
+  <!-- ========== Cost drawer ========== -->
+  <div id="costDrawer" class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header"><h3>費用の内訳</h3><button type="button" class="icon-btn" data-close="costDrawer">×</button></div>
+    <div class="sheet-body" id="costDrawerBody"></div>
+  </div>
+
+  <!-- ========== Card modal ========== -->
+  <div id="cardModal" class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header"><h3 id="cardModalTitle">予定を追加</h3><button type="button" class="icon-btn" data-close="cardModal">×</button></div>
+    <div class="sheet-body">
+      <form id="cardForm">
+        <div class="field">
+          <label>種類</label>
+          <div class="chip-select" id="typeChips">
+            <button type="button" class="chip-option" data-type="activity">📍 アクティビティ</button>
+            <button type="button" class="chip-option" data-type="move">🧭 移動</button>
+            <button type="button" class="chip-option" data-type="meal">🍴 食事</button>
+            <button type="button" class="chip-option" data-type="lodging">🏨 宿泊</button>
+            <button type="button" class="chip-option" data-type="other">📌 その他</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="cardTitle">タイトル</label>
+          <input type="text" id="cardTitle" placeholder="例：伏見稲荷大社">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="cardStart">開始時刻</label>
+            <input type="time" id="cardStart">
+          </div>
+          <div class="field">
+            <label for="cardEnd">終了時刻</label>
+            <input type="time" id="cardEnd">
+          </div>
+        </div>
+        <div class="field">
+          <label for="cardLocation">場所</label>
+          <input type="text" id="cardLocation" placeholder="住所や駅名など">
+        </div>
+        <div class="field" id="transportField" style="display:none">
+          <label for="cardTransport">移動手段</label>
+          <select id="cardTransport">
+            <option value="walk">🚶 徒歩</option>
+            <option value="train">🚃 電車</option>
+            <option value="bus">🚌 バス</option>
+            <option value="taxi">🚕 タクシー</option>
+            <option value="car">🚗 車</option>
+            <option value="flight">✈️ 飛行機</option>
+            <option value="ship">⛴️ 船</option>
+            <option value="other">🚏 その他</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="cardCost">費用（円）</label>
+          <input type="number" id="cardCost" min="0" step="1" placeholder="0">
+        </div>
+        <div class="field pin-field">
+          <label class="pin-checkbox-label">
+            <input type="checkbox" id="cardPerPerson">
+            <span>👥 一人あたりの金額として計算する</span>
+          </label>
+          <p class="hint">チェックすると、設定した人数（大人+子供）をかけた合計がカードと集計に反映されます。タクシー代や宿泊費など、人数に関係なく金額が決まるものはチェック不要です。</p>
+        </div>
+        <div class="field">
+          <label for="cardNotes">メモ</label>
+          <textarea id="cardNotes" rows="2" placeholder="予約番号、持ち物など"></textarea>
+        </div>
+        <div class="field pin-field">
+          <label class="pin-checkbox-label">
+            <input type="checkbox" id="cardPinned">
+            <span>📌 時刻をピン留めする</span>
+          </label>
+          <p class="hint">予約済みの時刻など動かせない予定に。ピン留め中は、AIに相談してもこの予定の時刻は変更されません。</p>
+        </div>
+      </form>
+    </div>
+    <div class="sheet-footer">
+      <button type="button" id="cardDeleteBtn" class="btn btn-danger-outline hidden">削除</button>
+      <button type="button" id="cardSaveBtn" class="btn btn-primary">保存</button>
+    </div>
+  </div>
+
+  <!-- ========== Chat modal ========== -->
+  <div id="chatModal" class="sheet sheet-tall">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header"><h3>AIに相談</h3><button type="button" class="icon-btn" data-close="chatModal">×</button></div>
+    <div class="chat-scope-banner" id="chatScopeBanner"></div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="例：電車だと間に合わないので他の方法は？">
+      <button type="button" id="chatSendBtn" class="btn btn-primary">送信</button>
+    </div>
+  </div>
+
+  <!-- ========== Settings modal ========== -->
+  <div id="settingsModal" class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header"><h3>設定</h3><button type="button" class="icon-btn" data-close="settingsModal">×</button></div>
+    <div class="sheet-body">
+      <div class="field"><label for="stName">旅行名</label><input type="text" id="stName"></div>
+      <div class="field-row">
+        <div class="field"><label for="stStart">出発日</label><input type="date" id="stStart"></div>
+        <div class="field"><label for="stNights">泊数</label><input type="number" id="stNights" min="0" max="60"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="stAdults">大人の人数</label><input type="number" id="stAdults" min="0" max="20"></div>
+        <div class="field"><label for="stChildren">子供（小学生）の人数</label><input type="number" id="stChildren" min="0" max="20"></div>
+      </div>
+      <div class="field">
+        <label for="stApiKey">Gemini APIキー</label>
+        <input type="password" id="stApiKey" placeholder="AIza...">
+        <p class="hint">AI相談機能を使うには、Google AI StudioなどでGemini APIキーを取得して入力してください。キーはこの端末内にのみ保存され、外部には送信されません。</p>
+      </div>
+      <div class="settings-actions">
+        <button type="button" id="exportBtn" class="btn btn-outline">書き出す</button>
+        <button type="button" id="importBtn" class="btn btn-outline">読み込む</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json" class="hidden">
+      <button type="button" id="resetBtn" class="btn btn-danger-outline btn-block">この旅行をリセット</button>
+    </div>
+    <div class="sheet-footer">
+      <button type="button" id="settingsSaveBtn" class="btn btn-primary">保存</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function __showErrorBanner(msg){
+  try{
+    const el = document.getElementById('errorBanner');
+    if(!el) return;
+    el.textContent = (el.textContent ? el.textContent + '\n\n' : '⚠ エラーが発生しました。開発者にこの内容をお伝えください：\n') + msg;
+    el.classList.remove('hidden');
+  }catch(e){ /* last resort: nothing more we can do */ }
+}
+window.addEventListener('error', function(e){
+  __showErrorBanner((e.message||'unknown error') + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : ''));
+});
+window.addEventListener('unhandledrejection', function(e){
+  const reason = e.reason;
+  __showErrorBanner('Promise rejection: ' + (reason && reason.message ? reason.message : String(reason)));
+});
+</script>
+<script>
+(function(){
+'use strict';
+
+/* ================= Storage wrapper (window.storage -> localStorage fallback) ================= */
+async function storeGet(key){
+  if (typeof window.storage !== 'undefined') {
+    try{
+      const r = await window.storage.get(key, false);
+      return r ? JSON.parse(r.value) : null;
+    }catch(e){ return null; }
+  }
+  try{
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : null;
+  }catch(e){ return null; }
+}
+async function storeSet(key, value){
+  if (typeof window.storage !== 'undefined') {
+    try{ await window.storage.set(key, JSON.stringify(value), false); return true; }catch(e){ /* fall through */ }
+  }
+  try{ localStorage.setItem(key, JSON.stringify(value)); return true; }catch(e){ return false; }
+}
+
+/* ================= Constants ================= */
+const TRANSPORT_META = {
+  walk:{label:'徒歩', icon:'🚶', color:'var(--walk)'},
+  train:{label:'電車', icon:'🚃', color:'var(--train)'},
+  bus:{label:'バス', icon:'🚌', color:'var(--train)'},
+  taxi:{label:'タクシー', icon:'🚕', color:'var(--car)'},
+  car:{label:'車', icon:'🚗', color:'var(--car)'},
+  flight:{label:'飛行機', icon:'✈️', color:'var(--flight)'},
+  ship:{label:'船', icon:'⛴️', color:'var(--flight)'},
+  other:{label:'その他', icon:'🚏', color:'var(--line-neutral)'}
+};
+const TYPE_META = {
+  move:{label:'移動', icon:'🧭'},
+  activity:{label:'アクティビティ', icon:'📍'},
+  meal:{label:'食事', icon:'🍴'},
+  lodging:{label:'宿泊', icon:'🏨'},
+  other:{label:'その他', icon:'📌'}
+};
+
+/* ================= State ================= */
+let state = {
+  trip: null,
+  activeDayIndex: 0,
+  settings: { apiKey:'' }
+};
+const chatSessions = {};
+let currentChatKey = null;
+let currentScope = null;
+let openSheetId = null;
+let editingCardId = null;
+let cascadePendingContext = null;
+
+/* ================= Utils ================= */
+function uid(){ return Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4); }
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+function todayStr(){
+  const d = new Date();
+  const local = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+  return local.toISOString().slice(0,10);
+}
+function addDaysStr(dateStr, n){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  const local = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+  return local.toISOString().slice(0,10);
+}
+function fmtDateShort(dateStr){
+  if(!dateStr) return '';
+  const d = new Date(dateStr+'T00:00:00');
+  const w = ['日','月','火','水','木','金','土'][d.getDay()];
+  return (d.getMonth()+1)+'/'+d.getDate()+'('+w+')';
+}
+function timeToMinutes(t){
+  if(!t) return null;
+  const parts = t.split(':');
+  if(parts.length<2) return null;
+  return Number(parts[0])*60 + Number(parts[1]);
+}
+function generateDays(startDate, nights){
+  const numDays = Math.max(1, (parseInt(nights,10)||0)+1);
+  const days = [];
+  for(let i=0;i<numDays;i++){
+    days.push({ date: addDaysStr(startDate,i), cards: [] });
+  }
+  return days;
+}
+function totalPeopleCount(){
+  const a = Number(state.trip.adults);
+  const c = Number(state.trip.children);
+  const n = (isNaN(a)?0:a) + (isNaN(c)?0:c);
+  return n > 0 ? n : 1;
+}
+function cardEffectiveCost(card){
+  const unit = Number(card.cost)||0;
+  return card.perPerson ? unit * totalPeopleCount() : unit;
+}
+function computeDaySubtotal(day){
+  return day.cards.reduce((s,c)=> s + cardEffectiveCost(c), 0);
+}
+function computeTripTotal(trip){
+  return trip.days.reduce((s,d)=> s + computeDaySubtotal(d), 0);
+}
+function computeGap(prevCard, nextCard){
+  const a = timeToMinutes(prevCard.endTime);
+  const b = timeToMinutes(nextCard.startTime);
+  if(a===null || b===null) return null;
+  return b - a;
+}
+
+/* ================= Persistence ================= */
+function persistTrip(){ storeSet('trip', state.trip); }
+function persistSettings(){ storeSet('settings', state.settings); }
+
+/* ================= Render: shell ================= */
+function showScreen(name){
+  document.getElementById('onboarding').classList.toggle('hidden', name!=='onboarding');
+  document.getElementById('main').classList.toggle('hidden', name!=='main');
+  document.getElementById('fabs').classList.toggle('hidden', name!=='main');
+}
+function render(){
+  if(!state.trip){ showScreen('onboarding'); return; }
+  showScreen('main');
+  renderHeader();
+  renderDayTabs();
+  renderDayContent();
+}
+function renderHeader(){
+  document.getElementById('tripName').textContent = state.trip.name || '旅行';
+  document.getElementById('tripTotal').textContent = '¥'+computeTripTotal(state.trip).toLocaleString('ja-JP');
+}
+function renderDayTabs(){
+  const wrap = document.getElementById('dayTabs');
+  wrap.innerHTML = state.trip.days.map((day,i)=>{
+    const active = i===state.activeDayIndex;
+    return '<button type="button" class="day-tab '+(active?'active':'')+'" data-idx="'+i+'">'
+      +'<span class="day-tab-num">'+(i+1)+'日目</span>'
+      +'<span class="day-tab-date">'+fmtDateShort(day.date)+'</span>'
+      +'</button>';
+  }).join('');
+}
+function cardHTML(card, dayIdx, idx, count){
+  const tmeta = TYPE_META[card.type] || TYPE_META.other;
+  const transport = card.type==='move' ? (TRANSPORT_META[card.transportMode] || TRANSPORT_META.other) : null;
+  const icon = transport ? transport.icon : tmeta.icon;
+  const barColor = transport ? transport.color : 'var(--ink)';
+  const start = card.startTime || '--:--';
+  const end = card.endTime || '--:--';
+  let html = '<div class="card'+(card.pinned?' pinned':'')+'" style="--bar-color:'+barColor+'" data-day="'+dayIdx+'" data-id="'+card.id+'">';
+  html += '<div class="card-bar"></div>';
+  html += '<div class="card-body" data-action="edit">';
+  html += '<div class="card-row1"><span class="card-time-group"><span class="card-time">'+start+'–'+end+'</span>'+(card.pinned?'<span class="pin-indicator" title="時刻をピン留め中">📌</span>':'')+'</span><span class="card-icon">'+icon+'</span></div>';
+  html += '<div class="card-title">'+escapeHtml(card.title||'(無題)')+'</div>';
+  if(card.location) html += '<div class="card-loc">📍 '+escapeHtml(card.location)+'</div>';
+  html += '<div class="card-row3">';
+  if(transport) html += '<span class="chip chip-transport" style="--chip-color:'+transport.color+'">'+transport.icon+' '+transport.label+'</span>';
+  if(card.cost){
+    if(card.perPerson){
+      const total = cardEffectiveCost(card);
+      html += '<span class="chip chip-cost">¥'+total.toLocaleString('ja-JP')+' <small>(@¥'+Number(card.cost).toLocaleString('ja-JP')+'×'+totalPeopleCount()+'人)</small></span>';
+    } else {
+      html += '<span class="chip chip-cost">¥'+Number(card.cost).toLocaleString('ja-JP')+'</span>';
+    }
+  }
+  html += '</div>';
+  if(card.notes) html += '<div class="card-notes">'+escapeHtml(card.notes)+'</div>';
+  html += '</div>';
+  html += '<div class="card-actions">';
+  html += '<button type="button" class="icon-btn pin-btn'+(card.pinned?' active':'')+'" data-action="pin" aria-label="'+(card.pinned?'ピン留めを解除':'時刻をピン留め')+'">📌</button>';
+  html += '<button type="button" class="icon-btn" data-action="up" '+(idx===0?'disabled':'')+' aria-label="上へ">▲</button>';
+  html += '<button type="button" class="icon-btn" data-action="down" '+(idx===count-1?'disabled':'')+' aria-label="下へ">▼</button>';
+  html += '</div></div>';
+  return html;
+}
+function connectorHTML(prevCard, nextCard, dayIdx){
+  const gap = computeGap(prevCard, nextCard);
+  let stateClass, label;
+  if(gap===null){ stateClass='neutral'; label='時刻未設定'; }
+  else if(gap<0){ stateClass='conflict'; label='⚠ '+Math.abs(gap)+'分重複'; }
+  else if(gap<10){ stateClass='tight'; label='余裕 '+gap+'分'; }
+  else { stateClass='ok'; label='余裕 '+gap+'分'; }
+  const meta = nextCard.type==='move' ? (TRANSPORT_META[nextCard.transportMode] || TRANSPORT_META.other) : null;
+  const lineColor = meta ? meta.color : 'var(--line-neutral)';
+  return '<button type="button" class="connector '+stateClass+'" style="--line-color:'+lineColor+'" data-day="'+dayIdx+'" data-prev="'+prevCard.id+'" data-next="'+nextCard.id+'" aria-label="この間をAIに相談">'
+    +'<span class="connector-line"></span>'
+    +'<span class="connector-chip">'+label+'</span>'
+    +'</button>';
+}
+function renderDayContent(){
+  const day = state.trip.days[state.activeDayIndex];
+  const container = document.getElementById('dayContent');
+  const subtotal = computeDaySubtotal(day);
+  let html = '<div class="day-head">'
+    +'<div class="day-head-date">'+fmtDateShort(day.date)+' <span class="day-head-label">・'+(state.activeDayIndex+1)+'日目</span></div>'
+    +'<div class="day-head-subtotal">¥'+subtotal.toLocaleString('ja-JP')+'</div>'
+    +'</div>';
+  if(day.cards.length===0){
+    html += '<div class="empty-state">この日の予定はまだありません。<br>右下の「＋」から追加しましょう。</div>';
+  } else {
+    html += '<div class="card-list">';
+    day.cards.forEach((card,idx)=>{
+      html += cardHTML(card, state.activeDayIndex, idx, day.cards.length);
+      if(idx < day.cards.length-1){
+        html += connectorHTML(card, day.cards[idx+1], state.activeDayIndex);
+      }
+    });
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+/* ================= Sheets ================= */
+function openSheet(id){
+  openSheetId = id;
+  document.getElementById('overlay').classList.remove('hidden');
+  const el = document.getElementById(id);
+  el.classList.remove('hidden');
+  requestAnimationFrame(()=>{
+    el.classList.add('open');
+    document.getElementById('overlay').classList.add('open');
+  });
+}
+function closeSheet(id){
+  const el = document.getElementById(id);
+  el.classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+  setTimeout(()=>{
+    el.classList.add('hidden');
+    document.getElementById('overlay').classList.add('hidden');
+  }, 200);
+  openSheetId = null;
+}
+
+/* ================= Card modal ================= */
+function openCardModal(dayIdx, cardId){
+  editingCardId = cardId;
+  const day = state.trip.days[dayIdx];
+  const card = cardId ? day.cards.find(c=>c.id===cardId) : null;
+  document.getElementById('cardModalTitle').textContent = card ? '予定を編集' : '予定を追加';
+  document.getElementById('cardForm').dataset.day = dayIdx;
+  setTypeChip(card ? card.type : 'activity');
+  document.getElementById('cardTitle').value = card ? card.title||'' : '';
+  document.getElementById('cardStart').value = card ? card.startTime||'' : '';
+  document.getElementById('cardEnd').value = card ? card.endTime||'' : '';
+  document.getElementById('cardLocation').value = card ? card.location||'' : '';
+  document.getElementById('cardTransport').value = card ? card.transportMode||'train' : 'train';
+  document.getElementById('cardCost').value = card && card.cost ? card.cost : '';
+  document.getElementById('cardNotes').value = card ? card.notes||'' : '';
+  document.getElementById('cardPinned').checked = card ? !!card.pinned : false;
+  document.getElementById('cardPerPerson').checked = card ? !!card.perPerson : false;
+  document.getElementById('cardDeleteBtn').classList.toggle('hidden', !card);
+  openSheet('cardModal');
+}
+function setTypeChip(type){
+  document.querySelectorAll('#typeChips .chip-option').forEach(btn=>{
+    btn.classList.toggle('selected', btn.dataset.type===type);
+  });
+  document.getElementById('transportField').style.display = (type==='move') ? '' : 'none';
+}
+function getSelectedType(){
+  const sel = document.querySelector('#typeChips .chip-option.selected');
+  return sel ? sel.dataset.type : 'activity';
+}
+function saveCard(){
+  const dayIdx = Number(document.getElementById('cardForm').dataset.day);
+  const day = state.trip.days[dayIdx];
+  const type = getSelectedType();
+  const cardData = {
+    id: editingCardId || uid(),
+    type: type,
+    title: document.getElementById('cardTitle').value.trim(),
+    startTime: document.getElementById('cardStart').value,
+    endTime: document.getElementById('cardEnd').value,
+    location: document.getElementById('cardLocation').value.trim(),
+    transportMode: type==='move' ? document.getElementById('cardTransport').value : undefined,
+    cost: document.getElementById('cardCost').value ? Number(document.getElementById('cardCost').value) : 0,
+    perPerson: document.getElementById('cardPerPerson').checked,
+    notes: document.getElementById('cardNotes').value.trim(),
+    pinned: document.getElementById('cardPinned').checked
+  };
+  let cascadeCandidate = null;
+  if(editingCardId){
+    const idx = day.cards.findIndex(c=>c.id===editingCardId);
+    if(idx>-1){
+      const old = day.cards[idx];
+      const timeChanged = (old.startTime||'')!==(cardData.startTime||'') || (old.endTime||'')!==(cardData.endTime||'');
+      const hasDownstream = idx < day.cards.length-1;
+      day.cards[idx] = cardData;
+      if(timeChanged && hasDownstream) cascadeCandidate = { dayIndex:dayIdx, fromCardId:cardData.id, title:cardData.title||'この予定' };
+    }
+  } else {
+    day.cards.push(cardData);
+  }
+  persistTrip();
+  closeSheet('cardModal');
+  renderHeader();
+  renderDayContent();
+  if(cascadeCandidate){
+    setTimeout(()=>offerCascadeAdjustment(cascadeCandidate), 350);
+  }
+}
+function deleteCard(){
+  if(!editingCardId) return;
+  if(!confirm('この予定を削除しますか？')) return;
+  const dayIdx = Number(document.getElementById('cardForm').dataset.day);
+  const day = state.trip.days[dayIdx];
+  day.cards = day.cards.filter(c=>c.id!==editingCardId);
+  persistTrip();
+  closeSheet('cardModal');
+  renderHeader();
+  renderDayContent();
+}
+function moveCard(dayIdx, cardId, dir){
+  const day = state.trip.days[dayIdx];
+  const idx = day.cards.findIndex(c=>c.id===cardId);
+  const newIdx = idx+dir;
+  if(newIdx<0 || newIdx>=day.cards.length) return;
+  const tmp = day.cards[idx];
+  day.cards[idx] = day.cards[newIdx];
+  day.cards[newIdx] = tmp;
+  persistTrip();
+  renderDayContent();
+}
+function togglePin(dayIdx, cardId){
+  const day = state.trip.days[dayIdx];
+  const c = day.cards.find(c=>c.id===cardId);
+  if(!c) return;
+  c.pinned = !c.pinned;
+  persistTrip();
+  renderDayContent();
+}
+
+/* ================= Chat ================= */
+function scopeKey(scope){ return scope.type+':'+scope.dayIndex+':'+(scope.prevId||'')+':'+(scope.nextId||'')+':'+(scope.fromCardId||''); }
+function buildScopeContext(scope){
+  const day = state.trip.days[scope.dayIndex];
+  const 人数 = { 大人: state.trip.adults||0, 子供小学生: state.trip.children||0 };
+  if(scope.type==='connector'){
+    const prev = day.cards.find(c=>c.id===scope.prevId);
+    const next = day.cards.find(c=>c.id===scope.nextId);
+    return { 日付: day.date, 人数, 相談内容:'2つの予定の間の移動手段・時間の調整', 前の予定:prev, 次の予定:next };
+  }
+  if(scope.type==='cascade'){
+    const idx = day.cards.findIndex(c=>c.id===scope.fromCardId);
+    const relevant = idx>-1 ? day.cards.slice(idx) : day.cards;
+    return { 日付: day.date, 人数, 相談内容:'先頭の予定の時刻が変更されたため、それ以降の予定を実際の時刻表に基づいて再調整する', '対象の予定一覧（時刻順・先頭が今変更された予定）': relevant };
+  }
+  return { 日付: day.date, 人数, 相談内容:'この日全体のスケジュール調整', 予定一覧: day.cards };
+}
+function scopeBannerText(scope){
+  const day = state.trip.days[scope.dayIndex];
+  if(scope.type==='connector'){
+    const prev = day.cards.find(c=>c.id===scope.prevId);
+    const next = day.cards.find(c=>c.id===scope.nextId);
+    let text = '🧭 「'+(prev?prev.title||'前の予定':'前の予定')+'」→「'+(next?next.title||'次の予定':'次の予定')+'」の移動について';
+    if((prev&&prev.pinned) || (next&&next.pinned)) text += '（📌時刻固定あり）';
+    return text;
+  }
+  if(scope.type==='cascade'){
+    return '🔄 時刻変更にともなう、以降の予定の自動調整';
+  }
+  const pinnedCount = day.cards.filter(c=>c.pinned).length;
+  return '📅 '+(scope.dayIndex+1)+'日目 ('+fmtDateShort(day.date)+') 全体について' + (pinnedCount ? '（📌時刻固定 '+pinnedCount+'件）' : '');
+}
+function openChat(scope){
+  currentScope = scope;
+  currentChatKey = scopeKey(scope);
+  if(!chatSessions[currentChatKey]){
+    chatSessions[currentChatKey] = { messages: [
+      { role:'hint', content:'移動手段や出発時刻の相談はもちろん、調べてほしいことを聞いてみましょう。1日分の行程をまとめて考えてもらうこともできます。内容によっては、結果をそのまま新しい予定として追加する提案が出てきます（複数ある場合は、まとめて追加することもできます）。' }
+    ]};
+  }
+  document.getElementById('chatScopeBanner').textContent = scopeBannerText(scope);
+  renderChat();
+  openSheet('chatModal');
+  setTimeout(()=>document.getElementById('chatInput').focus(), 250);
+}
+function openChatForConnector(dayIdx, prevId, nextId){
+  openChat({ type:'connector', dayIndex:dayIdx, prevId:prevId, nextId:nextId });
+}
+function offerCascadeAdjustment(ctx){
+  cascadePendingContext = ctx;
+  document.getElementById('cascadeBannerText').textContent = '「'+ctx.title+'」の時刻が変わりました。これ以降の予定を時刻表で確認して自動調整しますか？';
+  const el = document.getElementById('cascadeBanner');
+  el.classList.remove('hidden');
+  requestAnimationFrame(()=>el.classList.add('show'));
+}
+function hideCascadeBanner(){
+  const el = document.getElementById('cascadeBanner');
+  el.classList.remove('show');
+  setTimeout(()=>el.classList.add('hidden'), 200);
+}
+function startCascadeAdjustment(ctx){
+  openChat({ type:'cascade', dayIndex:ctx.dayIndex, fromCardId:ctx.fromCardId });
+  document.getElementById('chatInput').value = '「'+ctx.title+'」の時刻を変更しました。これ以降の予定について、実際の時刻表を調べたうえで、無理なく間に合うように移動手段・時刻を調整する提案をしてください。';
+  sendChatMessage();
+}
+function openChatForDay(dayIdx){
+  openChat({ type:'day', dayIndex:dayIdx });
+}
+function renderChat(){
+  const wrap = document.getElementById('chatMessages');
+  const msgs = chatSessions[currentChatKey].messages;
+  let html = '';
+  msgs.forEach((m, i)=>{
+    if(m.role==='hint'){
+      html += '<div class="bubble hint">'+escapeHtml(m.content)+'</div>';
+      return;
+    }
+    const cls = m.role==='user' ? 'user' : ('assistant'+(m.error?' error':''));
+    html += '<div class="bubble '+cls+'">'+escapeHtml(m.content)+'</div>';
+    if(m.suggestions && m.suggestions.length){
+      m.suggestions.forEach((s, si)=>{
+        const isAdd = s.action==='add';
+        const tmeta = isAdd ? (TYPE_META[s.type] || TYPE_META.other) : null;
+        const targetCard = isAdd ? null : findCardById(s.cardId);
+        const timeLocked = !isAdd && targetCard && targetCard.pinned;
+        html += '<div class="suggestion-card'+(isAdd?' suggestion-add':'')+'">';
+        html += '<h5>'+(isAdd ? '新しい予定の追加案：'+escapeHtml(s.title||'(無題)') : '変更案：'+escapeHtml(cardLabelForSuggestion(s)))+'</h5>';
+        if(isAdd){
+          html += '<div class="suggestion-row"><span>種類</span><span>'+tmeta.icon+' '+tmeta.label+'</span></div>';
+          if(s.location) html += '<div class="suggestion-row"><span>場所</span><span>'+escapeHtml(s.location)+'</span></div>';
+        }
+        if(s.transportMode) html += '<div class="suggestion-row"><span>移動手段</span><span>'+(TRANSPORT_META[s.transportMode]?TRANSPORT_META[s.transportMode].label:s.transportMode)+'</span></div>';
+        if(s.startTime) html += '<div class="suggestion-row"><span>開始時刻</span><span>'+s.startTime+(timeLocked?' <em>（📌適用されません）</em>':'')+'</span></div>';
+        if(s.endTime) html += '<div class="suggestion-row"><span>終了時刻</span><span>'+s.endTime+(timeLocked?' <em>（📌適用されません）</em>':'')+'</span></div>';
+        if(typeof s.cost==='number'){
+          if(isAdd && s.perPerson){
+            html += '<div class="suggestion-row"><span>費用</span><span>¥'+(s.cost*totalPeopleCount()).toLocaleString('ja-JP')+' (@¥'+s.cost.toLocaleString('ja-JP')+'×'+totalPeopleCount()+'人)</span></div>';
+          } else {
+            html += '<div class="suggestion-row"><span>費用</span><span>¥'+s.cost.toLocaleString('ja-JP')+'</span></div>';
+          }
+        }
+        if(isAdd && s.notes) html += '<div class="suggestion-row"><span>メモ</span><span>'+escapeHtml(s.notes)+'</span></div>';
+        const label = isAdd ? 'この予定を追加する' : 'この提案を適用する';
+        const btnLabel = s.applied ? '適用しました ✓' : (s.failed ? '⚠ 対象の予定が見つかりません' : label);
+        html += '<button type="button" class="suggestion-apply'+(s.failed?' failed':'')+'" data-msg="'+i+'" data-sug="'+si+'" '+(s.applied||s.failed?'disabled':'')+'>'+btnLabel+'</button>';
+        html += '</div>';
+      });
+      const pending = m.suggestions.filter(s=>!s.applied && !s.failed).length;
+      if(m.suggestions.length > 1 && pending > 0){
+        const allLabel = pending===m.suggestions.length ? 'すべてまとめて適用する（'+pending+'件）' : '残り'+pending+'件をまとめて適用する';
+        html += '<button type="button" class="suggestion-apply-all" data-msg="'+i+'">'+allLabel+'</button>';
+      }
+    }
+  });
+  wrap.innerHTML = html;
+  wrap.scrollTop = wrap.scrollHeight;
+}
+function findCardById(cardId){
+  for(const day of state.trip.days){
+    const c = day.cards.find(c=>c.id===cardId);
+    if(c) return c;
+  }
+  return null;
+}
+function cardLabelForSuggestion(s){
+  const c = findCardById(s.cardId);
+  return c ? (c.title||'予定') : '該当の予定';
+}
+function setChatLoading(loading){
+  const wrap = document.getElementById('chatMessages');
+  let el = document.getElementById('chatLoadingMsg');
+  if(loading){
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'chatLoadingMsg';
+      el.className = 'chat-loading';
+      el.textContent = '考え中…';
+      wrap.appendChild(el);
+    }
+  } else if(el){
+    el.remove();
+  }
+  wrap.scrollTop = wrap.scrollHeight;
+  document.getElementById('chatSendBtn').disabled = loading;
+}
+function buildSystemPrompt(scopeContext){
+  return 'あなたは旅行日程調整の専門アシスタントです。ユーザーの実際の旅程データをもとに、移動手段や出発・終了時刻の調整を手伝うほか、ユーザーが調べてほしいこと（観光地の情報、料金の目安、おすすめのお店など）にも答えます。\n\n'
+  + '# ルール\n'
+  + '- 日本語で、簡潔かつ実用的に答えてください（3〜5文程度を目安に）。\n'
+  + '- 実際の運行時刻・所要時間・料金など、調べれば分かる具体的な情報が必要な場合は、ウェブ検索ツールを使って調べたうえで回答してください。特に「時刻表を調べて」のように明示的に頼まれた場合や、予定同士の間の移動時間を正確に見積もる必要がある場合は積極的に検索してください。検索しても正確な情報が見つからない場合のみ、一般的な目安であることを伝えてください。\n'
+  + '- 具体的な提案がある場合のみ、返答の最後に次の形式のJSONコードブロックを1つだけ含めてください（提案がなければ含めないでください）。\n'
+  + '```json\n{"suggestions":[\n'
+  + '  {"action":"update","cardId":"対象カードのid","startTime":"HH:MM","endTime":"HH:MM","transportMode":"walk|train|bus|taxi|car|flight|ship|other","cost":数値,"reason":"短い理由"},\n'
+  + '  {"action":"add","type":"activity|move|meal|lodging|other","title":"予定名","startTime":"HH:MM","endTime":"HH:MM","location":"場所","transportMode":"（typeがmoveの場合のみ）walk|train|bus|taxi|car|flight|ship|other","cost":数値,"perPerson":true/false,"notes":"補足"}\n'
+  + ']}\n```\n'
+  + '- actionが"update"の場合：既存の予定の時刻・移動手段・費用を調整する提案です。cardIdは与えられたデータのidと完全に一致させてください。変更しない項目は省略してかまいません。update提案のcostは、対象の予定がperPerson:trueなら1人あたりの金額、falseまたは未設定なら合計金額を入れてください（対象カードの元の意味に合わせてください）。\n'
+  + '- 旅程データの各予定に pinned:true が含まれている場合、その予定の時刻はユーザーが固定（ピン留め）しています。pinnedな予定のstartTime/endTimeを変更するupdate提案は絶対に出さないでください（移動手段や費用の変更提案は出してかまいません）。間に合わせる必要がある場合は、pinnedでない他の予定の時刻や移動手段を調整することで対応してください。\n'
+  + '- actionが"add"の場合：会話の中で調べた内容などをもとに、新しい予定としてそのまま旅程に追加できる提案です。titleは必須、それ以外は分かる範囲で埋めてください（不明な項目は省略可）。ユーザーが情報を尋ねただけで、旅程に追加してほしそうな内容でなければ、無理にadd提案を出す必要はありません。入館料・食事代など人数分かかる費用はperPerson:trueにしてcostに1人あたりの金額を入れてください（人数を掛け算した合計は不要です。アプリ側で「人数」情報をもとに自動計算します）。タクシー代や宿泊費など人数に関係なく決まる金額はperPerson:falseまたは省略し、costに合計金額を入れてください。\n'
+  + '- ユーザーが1日分の行程をまとめて考えてほしい、複数の予定をまとめて提案してほしいと頼んだ場合は、suggestions配列にaction:"add"の項目を必要な数だけ並べてください。時刻順に並べ、移動が必要な区間には別途action:"add", type:"move"の項目も入れてください。1件ずつではなく、まとめて1回のJSONブロックで返してください（それぞれが個別の予定カードとして追加されます）。\n'
+  + '- 「対象の予定一覧（時刻順・先頭が今変更された予定）」が渡された場合、先頭の予定はユーザーが今まさに変更したばかりの予定です。先頭の予定自体の時刻を変更する提案は出さず、それより後ろの予定の時刻・移動手段のみを、先頭の予定の新しい時刻に間に合うよう調整してください。\n'
+  + '- 既存の予定の削除は提案しないでください。\n\n'
+  + '# 現在の旅程データ（対象範囲）\n' + JSON.stringify(scopeContext);
+}
+function extractText(res){
+  if(!res || !res.candidates || !res.candidates[0]) return '';
+  const parts = res.candidates[0].content && res.candidates[0].content.parts;
+  if(!parts) return '';
+  return parts.filter(p=>typeof p.text==='string').map(p=>p.text).join('\n');
+}
+function parseSuggestions(text){
+  const m = text.match(/```json\s*([\s\S]*?)```/);
+  if(!m) return { cleanText:text.trim(), suggestions:[] };
+  let suggestions = [];
+  try{
+    const parsed = JSON.parse(m[1]);
+    suggestions = parsed.suggestions || [];
+  }catch(e){ suggestions = []; }
+  const cleanText = text.replace(m[0],'').trim();
+  return { cleanText: cleanText || '調整案をまとめました。', suggestions };
+}
+async function callGemini(messages, system){
+  const apiKey = state.settings.apiKey;
+  if(!apiKey){
+    const err = new Error('AI相談にはGemini APIキーが必要です。設定画面から入力してください。');
+    err.needsKey = true;
+    throw err;
+  }
+  const contents = messages.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+  const model = 'gemini-3.5-flash';
+  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-goog-api-key': apiKey
+    },
+    body: JSON.stringify({
+      contents: contents,
+      systemInstruction: { parts:[{ text: system }] },
+      tools: [{ google_search: {} }]
+    })
+  });
+  if(!res.ok){
+    throw new Error('APIの呼び出しに失敗しました（コード '+res.status+'）。APIキーをご確認ください。');
+  }
+  return await res.json();
+}
+async function sendChatMessage(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+  const session = chatSessions[currentChatKey];
+  session.messages.push({ role:'user', content:text });
+  renderChat();
+  setChatLoading(true);
+  try{
+    const sys = buildSystemPrompt(buildScopeContext(currentScope));
+    const apiMessages = session.messages
+      .filter(m=>m.role==='user'||m.role==='assistant')
+      .map(m=>({ role:m.role, content:m.content }));
+    const res = await callGemini(apiMessages, sys);
+    const raw = extractText(res);
+    const { cleanText, suggestions } = parseSuggestions(raw);
+    session.messages.push({ role:'assistant', content:cleanText, suggestions:suggestions });
+  }catch(err){
+    session.messages.push({ role:'assistant', content: err.message || String(err), error:true });
+    if(err.needsKey){
+      setTimeout(()=>{ closeSheet('chatModal'); openSettings(); }, 900);
+    }
+  }
+  setChatLoading(false);
+  renderChat();
+}
+function applyOneSuggestionToState(s){
+  if(s.action==='add'){
+    const day = state.trip.days[currentScope.dayIndex];
+    if(!day) return false;
+    const type = TYPE_META[s.type] ? s.type : 'activity';
+    day.cards.push({
+      id: uid(),
+      type: type,
+      title: s.title || '(無題)',
+      startTime: s.startTime || '',
+      endTime: s.endTime || '',
+      location: s.location || '',
+      transportMode: type==='move' ? (TRANSPORT_META[s.transportMode] ? s.transportMode : 'other') : undefined,
+      cost: typeof s.cost==='number' ? s.cost : 0,
+      perPerson: !!s.perPerson,
+      notes: s.notes || ''
+    });
+    return true;
+  }
+  let found = false;
+  for(const day of state.trip.days){
+    const c = day.cards.find(c=>c.id===s.cardId);
+    if(c){
+      found = true;
+      if(s.startTime && !c.pinned) c.startTime = s.startTime;
+      if(s.endTime && !c.pinned) c.endTime = s.endTime;
+      if(s.transportMode && TRANSPORT_META[s.transportMode]) c.transportMode = s.transportMode;
+      if(typeof s.cost==='number') c.cost = s.cost;
+    }
+  }
+  return found;
+}
+function applySuggestion(msgIndex, sugIndex){
+  const session = chatSessions[currentChatKey];
+  const msg = session.messages[msgIndex];
+  const s = msg.suggestions[sugIndex];
+  const ok = applyOneSuggestionToState(s);
+  if(!ok){
+    s.failed = true;
+    renderChat();
+    return;
+  }
+  persistTrip();
+  s.applied = true;
+  state.activeDayIndex = currentScope.dayIndex;
+  renderHeader();
+  renderDayTabs();
+  renderDayContent();
+  renderChat();
+}
+function applyAllSuggestions(msgIndex){
+  const session = chatSessions[currentChatKey];
+  const msg = session.messages[msgIndex];
+  msg.suggestions.forEach(s=>{
+    if(!s.applied && !s.failed){
+      const ok = applyOneSuggestionToState(s);
+      if(ok) s.applied = true; else s.failed = true;
+    }
+  });
+  persistTrip();
+  state.activeDayIndex = currentScope.dayIndex;
+  renderHeader();
+  renderDayTabs();
+  renderDayContent();
+  renderChat();
+}
+
+/* ================= Cost drawer ================= */
+function renderCostDrawer(){
+  const trip = state.trip;
+  const dayRows = trip.days.map((day,i)=>
+    '<div class="cost-row"><span>'+(i+1)+'日目 '+fmtDateShort(day.date)+'</span><span>¥'+computeDaySubtotal(day).toLocaleString('ja-JP')+'</span></div>'
+  ).join('');
+  const byType = {};
+  trip.days.forEach(day=>day.cards.forEach(c=>{
+    const amount = cardEffectiveCost(c);
+    if(amount) byType[c.type] = (byType[c.type]||0) + amount;
+  }));
+  const typeRows = Object.keys(byType).map(t=>{
+    const meta = TYPE_META[t] || TYPE_META.other;
+    return '<div class="cost-row sub"><span>'+meta.icon+' '+meta.label+'</span><span>¥'+byType[t].toLocaleString('ja-JP')+'</span></div>';
+  }).join('');
+  const adults = trip.adults||0;
+  const children = trip.children||0;
+  document.getElementById('costDrawerBody').innerHTML =
+    '<div class="cost-section"><h4>人数</h4><div class="cost-row"><span>大人 '+adults+'人・子供 '+children+'人</span><span>計'+totalPeopleCount()+'人</span></div></div>'
+    +'<div class="cost-section"><h4>日別</h4>'+dayRows+'</div>'
+    +'<div class="cost-section"><h4>カテゴリ別</h4>'+(typeRows || '<p class="muted">まだ費用が入力されていません</p>')+'</div>'
+    +'<div class="cost-total"><span>総費用</span><span>¥'+computeTripTotal(trip).toLocaleString('ja-JP')+'</span></div>';
+}
+
+/* ================= Settings ================= */
+function openSettings(){
+  document.getElementById('stName').value = state.trip.name || '';
+  document.getElementById('stStart').value = state.trip.startDate;
+  document.getElementById('stNights').value = state.trip.nights;
+  document.getElementById('stAdults').value = (typeof state.trip.adults==='number') ? state.trip.adults : 2;
+  document.getElementById('stChildren').value = (typeof state.trip.children==='number') ? state.trip.children : 0;
+  document.getElementById('stApiKey').value = state.settings.apiKey || '';
+  openSheet('settingsModal');
+}
+function regenerateDays(newStart, newNights){
+  const numDays = Math.max(1, (parseInt(newNights,10)||0)+1);
+  const oldDays = state.trip.days;
+  const days = [];
+  for(let i=0;i<numDays;i++){
+    days.push({ date: addDaysStr(newStart,i), cards: oldDays[i] ? oldDays[i].cards : [] });
+  }
+  state.trip.days = days;
+  state.trip.startDate = newStart;
+  state.trip.nights = parseInt(newNights,10)||0;
+  if(state.activeDayIndex >= days.length) state.activeDayIndex = days.length-1;
+}
+function saveSettings(){
+  state.trip.name = document.getElementById('stName').value.trim();
+  const newStart = document.getElementById('stStart').value || state.trip.startDate;
+  const newNights = document.getElementById('stNights').value;
+  if(newStart !== state.trip.startDate || Number(newNights) !== state.trip.nights){
+    regenerateDays(newStart, newNights);
+  }
+  state.trip.adults = document.getElementById('stAdults').value ? Number(document.getElementById('stAdults').value) : 0;
+  state.trip.children = document.getElementById('stChildren').value ? Number(document.getElementById('stChildren').value) : 0;
+  state.settings.apiKey = document.getElementById('stApiKey').value.trim();
+  persistTrip();
+  persistSettings();
+  closeSheet('settingsModal');
+  render();
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(state.trip, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (state.trip.name || 'trip') + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function importData(file){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(!data.startDate || !Array.isArray(data.days)) throw new Error('形式が正しくありません');
+      state.trip = data;
+      state.activeDayIndex = 0;
+      persistTrip();
+      closeSheet('settingsModal');
+      render();
+    }catch(e){
+      alert('読み込みに失敗しました。正しいバックアップファイルか確認してください。');
+    }
+  };
+  reader.readAsText(file);
+}
+function resetTrip(){
+  if(!confirm('この旅行のデータを削除します。よろしいですか？')) return;
+  state.trip = null;
+  storeSet('trip', null);
+  closeSheet('settingsModal');
+  render();
+}
+
+/* ================= Manifest (best-effort, for "add to home screen") ================= */
+function setupManifest(){
+  try{
+    const canvas = document.createElement('canvas');
+    canvas.width = 192; canvas.height = 192;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#1F3A5F';
+    if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(0,0,192,192,36); ctx.fill(); }
+    else { ctx.fillRect(0,0,192,192); }
+    ctx.fillStyle = '#EDF1F4';
+    ctx.beginPath();
+    ctx.moveTo(48,138); ctx.lineTo(150,54); ctx.lineTo(108,150); ctx.lineTo(92,112); ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#C4432B';
+    ctx.beginPath();
+    ctx.moveTo(92,112); ctx.lineTo(150,54); ctx.lineTo(114,100); ctx.closePath();
+    ctx.fill();
+    const iconUrl = canvas.toDataURL('image/png');
+    const manifest = {
+      name: '旅程調整 Journey Planner',
+      short_name: '旅程調整',
+      start_url: './',
+      display: 'standalone',
+      background_color: '#EDF1F4',
+      theme_color: '#1F3A5F',
+      icons: [{ src: iconUrl, sizes:'192x192', type:'image/png', purpose:'any' }]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type:'application/manifest+json' });
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = URL.createObjectURL(blob);
+    document.head.appendChild(link);
+  }catch(e){ /* optional */ }
+}
+
+/* ================= Event binding ================= */
+function createTripFromOnboarding(){
+    const name = document.getElementById('obName').value.trim();
+    const startDate = document.getElementById('obStart').value || todayStr();
+    const nights = document.getElementById('obNights').value;
+    const adults = document.getElementById('obAdults').value ? Number(document.getElementById('obAdults').value) : 0;
+    const children = document.getElementById('obChildren').value ? Number(document.getElementById('obChildren').value) : 0;
+    state.trip = {
+      name: name,
+      startDate: startDate,
+      nights: parseInt(nights,10)||0,
+      adults: adults,
+      children: children,
+      days: generateDays(startDate, nights)
+    };
+    state.activeDayIndex = 0;
+    persistTrip();
+    render();
+}
+function bindEvents(){
+  document.getElementById('onboardingForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    createTripFromOnboarding();
+  });
+  document.getElementById('createTripBtn').addEventListener('click', e=>{
+    e.preventDefault();
+    createTripFromOnboarding();
+  });
+  document.getElementById('obStart').value = todayStr();
+
+  document.getElementById('dayTabs').addEventListener('click', e=>{
+    const btn = e.target.closest('.day-tab');
+    if(!btn) return;
+    state.activeDayIndex = Number(btn.dataset.idx);
+    renderDayTabs();
+    renderDayContent();
+  });
+
+  document.getElementById('dayContent').addEventListener('click', e=>{
+    const connBtn = e.target.closest('.connector');
+    if(connBtn){
+      openChatForConnector(Number(connBtn.dataset.day), connBtn.dataset.prev, connBtn.dataset.next);
+      return;
+    }
+    const cardEl = e.target.closest('.card');
+    if(!cardEl) return;
+    const dayIdx = Number(cardEl.dataset.day);
+    const cardId = cardEl.dataset.id;
+    const actionBtn = e.target.closest('[data-action]');
+    if(actionBtn && actionBtn.dataset.action==='pin'){ togglePin(dayIdx, cardId); return; }
+    if(actionBtn && actionBtn.dataset.action==='up'){ moveCard(dayIdx, cardId, -1); return; }
+    if(actionBtn && actionBtn.dataset.action==='down'){ moveCard(dayIdx, cardId, 1); return; }
+    openCardModal(dayIdx, cardId);
+  });
+
+  document.getElementById('fabAdd').addEventListener('click', ()=> openCardModal(state.activeDayIndex, null));
+  document.getElementById('fabChat').addEventListener('click', ()=> openChatForDay(state.activeDayIndex));
+
+  document.getElementById('typeChips').addEventListener('click', e=>{
+    const btn = e.target.closest('.chip-option');
+    if(!btn) return;
+    setTypeChip(btn.dataset.type);
+  });
+  document.getElementById('cardSaveBtn').addEventListener('click', saveCard);
+  document.getElementById('cardDeleteBtn').addEventListener('click', deleteCard);
+
+  document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+  document.getElementById('chatInput').addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); sendChatMessage(); }
+  });
+  document.getElementById('chatMessages').addEventListener('click', e=>{
+    const allBtn = e.target.closest('.suggestion-apply-all');
+    if(allBtn){ applyAllSuggestions(Number(allBtn.dataset.msg)); return; }
+    const btn = e.target.closest('.suggestion-apply');
+    if(!btn || btn.disabled) return;
+    applySuggestion(Number(btn.dataset.msg), Number(btn.dataset.sug));
+  });
+
+  document.getElementById('tripTotalBtn').addEventListener('click', ()=>{
+    renderCostDrawer();
+    openSheet('costDrawer');
+  });
+  document.getElementById('settingsBtn').addEventListener('click', openSettings);
+  document.getElementById('settingsSaveBtn').addEventListener('click', saveSettings);
+  document.getElementById('exportBtn').addEventListener('click', exportData);
+  document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', e=>{
+    if(e.target.files[0]) importData(e.target.files[0]);
+    e.target.value = '';
+  });
+  document.getElementById('resetBtn').addEventListener('click', resetTrip);
+
+  document.getElementById('cascadeBannerYes').addEventListener('click', ()=>{
+    hideCascadeBanner();
+    if(cascadePendingContext){ startCascadeAdjustment(cascadePendingContext); cascadePendingContext = null; }
+  });
+  document.getElementById('cascadeBannerNo').addEventListener('click', ()=>{
+    hideCascadeBanner();
+    cascadePendingContext = null;
+  });
+
+  document.querySelectorAll('[data-close]').forEach(btn=>{
+    btn.addEventListener('click', ()=> closeSheet(btn.dataset.close));
+  });
+  document.getElementById('overlay').addEventListener('click', ()=>{
+    if(openSheetId) closeSheet(openSheetId);
+  });
+}
+
+/* ================= Init ================= */
+function init(){
+  // Bind all UI events immediately — never block on storage I/O,
+  // so buttons work right away even if window.storage/localStorage is slow
+  // or unavailable in the current environment.
+  bindEvents();
+  setupManifest();
+  loadSavedData();
+}
+async function loadSavedData(){
+  const savedTrip = await storeGet('trip');
+  const savedSettings = await storeGet('settings');
+  if(savedTrip) state.trip = savedTrip;
+  if(savedSettings) state.settings = savedSettings;
+  render();
+}
+document.addEventListener('DOMContentLoaded', init);
+
+})();
+</script>
+</body>
+</html>
