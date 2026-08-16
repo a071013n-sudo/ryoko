@@ -976,18 +976,8 @@ function parseSuggestions(text){
   const cleanText = text.replace(m[0],'').trim();
   return { cleanText: cleanText || '調整案をまとめました。', suggestions };
 }
-async function callGemini(messages, system){
+async function callGeminiModel(model, contents, system){
   const apiKey = state.settings.apiKey;
-  if(!apiKey){
-    const err = new Error('AI相談にはGemini APIキーが必要です。設定画面から入力してください。');
-    err.needsKey = true;
-    throw err;
-  }
-  const contents = messages.map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }]
-  }));
-  const model = 'gemini-flash-latest';
   const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent', {
     method:'POST',
     headers:{
@@ -1000,20 +990,43 @@ async function callGemini(messages, system){
       tools: [{ google_search: {} }]
     })
   });
-  if(!res.ok){
-    let msg = 'APIの呼び出しに失敗しました（コード '+res.status+'）。';
-    if(res.status === 429){
-      msg += 'リクエスト数または利用量が上限に達しています。しばらく待ってから再度お試しください。';
-    } else if(res.status === 401 || res.status === 403){
-      msg += 'APIキーが正しくないか、権限がありません。設定画面でご確認ください。';
-    } else if(res.status === 404){
-      msg += '指定したモデルが見つかりません。';
-    } else {
-      msg += 'APIキーをご確認ください。';
-    }
-    throw new Error(msg);
+  return res;
+}
+async function callGemini(messages, system){
+  const apiKey = state.settings.apiKey;
+  if(!apiKey){
+    const err = new Error('AI相談にはGemini APIキーが必要です。設定画面から入力してください。');
+    err.needsKey = true;
+    throw err;
   }
-  return await res.json();
+  const contents = messages.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+  // レート制限（429）に達した場合は、より軽量なモデルへ自動的に切り替えて再試行する
+  const modelChain = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
+  let lastRes = null;
+  for(let i=0; i<modelChain.length; i++){
+    const model = modelChain[i];
+    lastRes = await callGeminiModel(model, contents, system);
+    if(lastRes.ok){
+      if(i > 0) state.lastUsedFallbackModel = model;
+      return await lastRes.json();
+    }
+    if(lastRes.status !== 429) break; // 429以外は切り替えても解決しないので即エラーへ
+  }
+  const status = lastRes.status;
+  let msg = 'APIの呼び出しに失敗しました（コード '+status+'）。';
+  if(status === 429){
+    msg += 'すべてのモデルでリクエスト数または利用量の上限に達しています。しばらく待ってから再度お試しください。';
+  } else if(status === 401 || status === 403){
+    msg += 'APIキーが正しくないか、権限がありません。設定画面でご確認ください。';
+  } else if(status === 404){
+    msg += '指定したモデルが見つかりません。';
+  } else {
+    msg += 'APIキーをご確認ください。';
+  }
+  throw new Error(msg);
 }
 async function sendChatMessage(){
   const input = document.getElementById('chatInput');
@@ -1032,7 +1045,12 @@ async function sendChatMessage(){
     const res = await callGemini(apiMessages, sys);
     const raw = extractText(res);
     const { cleanText, suggestions } = parseSuggestions(raw);
-    session.messages.push({ role:'assistant', content:cleanText, suggestions:suggestions });
+    let finalText = cleanText;
+    if(state.lastUsedFallbackModel){
+      finalText = '（通常モデルが混雑していたため、軽量モデルで応答しました）\n\n' + finalText;
+      state.lastUsedFallbackModel = null;
+    }
+    session.messages.push({ role:'assistant', content:finalText, suggestions:suggestions });
   }catch(err){
     session.messages.push({ role:'assistant', content: err.message || String(err), error:true });
     if(err.needsKey){
