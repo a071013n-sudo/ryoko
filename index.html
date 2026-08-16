@@ -492,9 +492,9 @@
         <label for="stApiKey">Gemini APIキー</label>
         <input type="password" id="stApiKey" placeholder="AIza...">
         <p class="hint">AI相談機能を使うには、Google AI StudioなどでGemini APIキーを取得して入力してください。キーはこの端末内にのみ保存され、外部には送信されません。</p>
-        <label for="stApiKey2">OpenAI APIキー（任意）</label>
-        <input type="password" id="stApiKey2" placeholder="sk-...">
-        <p class="hint">入力しておくと、Geminiが利用量上限（レート制限）に達した際に自動的にChatGPT（OpenAI）へ切り替えて会話を継続します。未入力の場合はGeminiのみで動作します。</p>
+        <label for="stApiKey2">Grok（xAI）APIキー（任意）</label>
+        <input type="password" id="stApiKey2" placeholder="xai-...">
+        <p class="hint">入力しておくと、Geminiが利用量上限（レート制限）に達した際に自動的にGrok（xAI）へ切り替えて会話を継続します。未入力の場合はGeminiのみで動作します。</p>
       </div>
       <div class="settings-actions">
         <button type="button" id="exportBtn" class="btn btn-outline">書き出す</button>
@@ -1208,7 +1208,7 @@ function buildSystemPrompt(scopeContext){
   + '# 現在の旅程データ（対象範囲）\n' + JSON.stringify(scopeContext);
 }
 function extractText(provider, res){
-  if(provider === 'openai'){
+  if(provider === 'grok'){
     if(!res || !res.choices || !res.choices[0]) return '';
     return (res.choices[0].message && res.choices[0].message.content) || '';
   }
@@ -1244,20 +1244,20 @@ async function callGeminiModel(model, contents, system){
   });
   return res;
 }
-async function callOpenAI(messages, system){
+async function callGrok(messages, system){
   const apiKey2 = state.settings.apiKey2;
-  const oaMessages = [{ role:'system', content: system }].concat(
+  const grokMessages = [{ role:'system', content: system }].concat(
     messages.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
   );
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await fetch('https://api.x.ai/v1/chat/completions', {
     method:'POST',
     headers:{
       'Content-Type':'application/json',
       'Authorization': 'Bearer ' + apiKey2
     },
     body: JSON.stringify({
-      model: 'gpt-5-mini',
-      messages: oaMessages
+      model: 'grok-4.3',
+      messages: grokMessages
     })
   });
   return res;
@@ -1266,7 +1266,7 @@ async function callAI(messages, system){
   const apiKey = state.settings.apiKey;
   const apiKey2 = state.settings.apiKey2;
   if(!apiKey && !apiKey2){
-    const err = new Error('AI相談にはGemini APIキー、またはOpenAI APIキーが必要です。設定画面から入力してください。');
+    const err = new Error('AI相談にはGemini APIキー、またはGrok（xAI）APIキーが必要です。設定画面から入力してください。');
     err.needsKey = true;
     throw err;
   }
@@ -1290,19 +1290,19 @@ async function callAI(messages, system){
       if(lastRes.status !== 429) break;
     }
   }
-  // 2) Geminiが利用不可（未設定 or 全モデルで429/エラー）で、OpenAIキーがあればChatGPTへ切り替え
-  const shouldTryOpenAI = apiKey2 && (!apiKey || (lastRes && lastRes.status === 429));
-  if(shouldTryOpenAI){
-    const oaRes = await callOpenAI(messages, system);
-    lastRes = oaRes;
-    lastProvider = 'openai';
-    if(oaRes.ok){
-      if(apiKey) state.lastUsedFallbackProvider = 'openai';
-      return { provider:'openai', data: await oaRes.json() };
+  // 2) Geminiが利用不可（未設定 or 全モデルで429/エラー）で、GrokキーがあればGrokへ切り替え
+  const shouldTryGrok = apiKey2 && (!apiKey || (lastRes && lastRes.status === 429));
+  if(shouldTryGrok){
+    const grokRes = await callGrok(messages, system);
+    lastRes = grokRes;
+    lastProvider = 'grok';
+    if(grokRes.ok){
+      if(apiKey) state.lastUsedFallbackProvider = 'grok';
+      return { provider:'grok', data: await grokRes.json() };
     }
   }
   const status = lastRes ? lastRes.status : 0;
-  let msg = 'APIの呼び出しに失敗しました（コード '+status+'、'+(lastProvider==='openai'?'OpenAI':'Gemini')+'）。';
+  let msg = 'APIの呼び出しに失敗しました（コード '+status+'、'+(lastProvider==='grok'?'Grok':'Gemini')+'）。';
   if(status === 429){
     msg += '利用量の上限に達しています。しばらく待ってから再度お試しください。';
   } else if(status === 401 || status === 403){
@@ -1333,8 +1333,8 @@ async function sendChatMessage(){
     const raw = extractText(result.provider, result.data);
     const { cleanText, suggestions } = parseSuggestions(raw);
     let finalText = cleanText;
-    if(result.provider === 'openai' && state.settings.apiKey){
-      finalText = '（Geminiの利用上限に達したため、ChatGPTで応答しました）\n\n' + finalText;
+    if(result.provider === 'grok' && state.settings.apiKey){
+      finalText = '（Geminiの利用上限に達したため、Grokで応答しました）\n\n' + finalText;
     } else if(state.lastUsedFallbackModel){
       finalText = '（通常モデルが混雑していたため、軽量モデルで応答しました）\n\n' + finalText;
       state.lastUsedFallbackModel = null;
