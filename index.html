@@ -74,6 +74,28 @@
   #onboarding h1{font-family:var(--font-display);font-weight:900;font-size:24px;margin:14px 0 4px;letter-spacing:.02em;}
   .onboarding-sub{color:var(--ink-soft);font-size:14px;margin:0 0 20px;line-height:1.6;}
 
+  /* ---------- Trip list ---------- */
+  #tripList{align-items:center;padding:24px 20px 40px;}
+  .triplist-wrap{width:100%;max-width:420px;margin:0 auto;}
+  .triplist-header{margin:8px 0 18px;}
+  .triplist-header h1{font-family:var(--font-display);font-weight:900;font-size:22px;margin:0 0 4px;}
+  .triplist-header p{color:var(--ink-soft);font-size:13px;margin:0;}
+  .triplist-items{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
+  .trip-item{
+    background:var(--card);border-radius:var(--radius-md);padding:14px 14px;
+    box-shadow:0 4px 14px rgba(31,58,95,.08);display:flex;align-items:center;gap:10px;
+    border:1.5px solid transparent;cursor:pointer;
+  }
+  .trip-item:active{transform:scale(.99);}
+  .trip-item.active{border-color:var(--ink);}
+  .trip-item-main{flex:1;min-width:0;}
+  .trip-item-name{font-weight:900;font-size:15px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .trip-item-meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .trip-item-badge{font-size:10px;font-weight:700;background:var(--ink);color:#fff;border-radius:999px;padding:2px 8px;flex-shrink:0;}
+  .trip-item-delete{flex-shrink:0;width:34px;height:34px;border-radius:50%;color:var(--warn);font-size:16px;}
+  .trip-item-delete:active{background:rgba(196,67,43,.1);}
+  .triplist-empty{text-align:center;color:var(--ink-soft);font-size:13px;padding:24px 0;}
+
   .field{margin-bottom:16px;}
   .field label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.02em;}
   .field input[type=text],.field input[type=date],.field input[type=time],.field input[type=number],.field input[type=password],.field select,.field textarea{
@@ -199,6 +221,20 @@
   .sheet-footer{display:flex;gap:10px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border);flex-shrink:0;background:var(--paper);}
   .sheet-footer .btn{flex:1;}
 
+  /* ---------- Custom confirm dialog (replaces blocked window.confirm) ---------- */
+  .confirm-box{
+    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);
+    width:calc(100% - 48px);max-width:340px;background:var(--paper);border-radius:16px;
+    z-index:41;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.25);
+    opacity:0;pointer-events:none;transition:opacity .18s, transform .18s;
+  }
+  .confirm-box.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
+  .confirm-box p{margin:0 0 18px;font-size:14.5px;line-height:1.5;color:var(--ink);}
+  .confirm-box .confirm-actions{display:flex;gap:10px;}
+  .confirm-box .confirm-actions .btn{flex:1;}
+  .confirm-overlay{position:fixed;inset:0;background:rgba(15,25,38,.35);z-index:40;opacity:0;pointer-events:none;transition:opacity .18s;}
+  .confirm-overlay.open{opacity:1;pointer-events:auto;}
+
   .chip-select{display:flex;flex-wrap:wrap;gap:8px;}
   .chip-option{padding:8px 12px;border-radius:999px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:600;}
   .chip-option.selected{background:var(--ink);color:#fff;border-color:var(--ink);}
@@ -230,6 +266,9 @@
   .chat-input-row{display:flex;gap:8px;padding:10px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--paper);flex-shrink:0;}
   .chat-input-row input{flex:1;padding:11px 13px;border-radius:999px;border:1.5px solid var(--border);font-size:14px;background:#fff;}
   .chat-input-row .btn{padding:10px 16px;}
+  .chat-mic-btn{flex-shrink:0;width:42px;height:42px;background:#fff;border:1.5px solid var(--border);font-size:17px;}
+  .chat-mic-btn.listening{background:var(--stamp-red);color:#fff;border-color:var(--stamp-red);animation:mic-pulse 1.2s ease-in-out infinite;}
+  @keyframes mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(196,67,43,.4);}50%{box-shadow:0 0 0 8px rgba(196,67,43,0);}}
 
   /* ---------- Cost drawer ---------- */
   .cost-section{margin-bottom:18px;}
@@ -244,10 +283,26 @@
 <div id="errorBanner" class="hidden" style="position:fixed;top:0;left:0;right:0;z-index:999;background:#C4432B;color:#fff;padding:10px 14px;font-size:12px;font-family:monospace;white-space:pre-wrap;max-height:40vh;overflow:auto;"></div>
 <div id="app">
 
+  <!-- ========== Trip list ========== -->
+  <div id="tripList" class="screen hidden">
+    <div class="triplist-wrap">
+      <div class="triplist-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+        <div>
+          <h1>旅行を選ぶ</h1>
+          <p>保存されている旅行から選ぶか、新しく作成してください。</p>
+        </div>
+        <button type="button" class="icon-btn" id="tripListCloseBtn" aria-label="閉じる">×</button>
+      </div>
+      <div class="triplist-items" id="tripListItems"></div>
+      <button type="button" id="newTripBtn" class="btn btn-primary btn-block">＋ 新しい旅行をつくる</button>
+    </div>
+  </div>
+
   <!-- ========== Onboarding ========== -->
   <div id="onboarding" class="screen">
     <div class="onboarding-card">
       <div class="onboarding-stripe"></div>
+      <button type="button" id="obBackBtn" class="icon-btn hidden" style="position:absolute;top:14px;right:14px;" aria-label="旅行一覧に戻る">×</button>
       <h1>旅程調整</h1>
       <p class="onboarding-sub">出発日と泊数を入力して、旅の計画をはじめましょう。あとから変更もできます。</p>
       <form id="onboardingForm">
@@ -290,6 +345,7 @@
             <span class="total-label">合計費用</span>
             <span id="tripTotal">¥0</span>
           </button>
+          <button type="button" class="icon-btn icon-btn-light" id="tripSwitchBtn" aria-label="旅行を切り替える">🧳</button>
           <button type="button" class="icon-btn icon-btn-light" id="settingsBtn" aria-label="設定">⚙️</button>
         </div>
       </div>
@@ -312,6 +368,14 @@
   </div>
 
   <div class="overlay hidden" id="overlay"></div>
+  <div class="confirm-overlay" id="confirmOverlay"></div>
+  <div class="confirm-box" id="confirmBox">
+    <p id="confirmBoxMessage"></p>
+    <div class="confirm-actions">
+      <button type="button" class="btn btn-outline" id="confirmBoxCancel">キャンセル</button>
+      <button type="button" class="btn btn-danger-outline" id="confirmBoxOk">削除する</button>
+    </div>
+  </div>
 
   <!-- ========== Cost drawer ========== -->
   <div id="costDrawer" class="sheet">
@@ -405,6 +469,7 @@
     <div class="chat-messages" id="chatMessages"></div>
     <div class="chat-input-row">
       <input type="text" id="chatInput" placeholder="例：電車だと間に合わないので他の方法は？">
+      <button type="button" id="chatMicBtn" class="icon-btn chat-mic-btn hidden" aria-label="音声入力">🎤</button>
       <button type="button" id="chatSendBtn" class="btn btn-primary">送信</button>
     </div>
   </div>
@@ -427,13 +492,16 @@
         <label for="stApiKey">Gemini APIキー</label>
         <input type="password" id="stApiKey" placeholder="AIza...">
         <p class="hint">AI相談機能を使うには、Google AI StudioなどでGemini APIキーを取得して入力してください。キーはこの端末内にのみ保存され、外部には送信されません。</p>
+        <label for="stApiKey2">OpenAI APIキー（任意）</label>
+        <input type="password" id="stApiKey2" placeholder="sk-...">
+        <p class="hint">入力しておくと、Geminiが利用量上限（レート制限）に達した際に自動的にChatGPT（OpenAI）へ切り替えて会話を継続します。未入力の場合はGeminiのみで動作します。</p>
       </div>
       <div class="settings-actions">
         <button type="button" id="exportBtn" class="btn btn-outline">書き出す</button>
         <button type="button" id="importBtn" class="btn btn-outline">読み込む</button>
       </div>
       <input type="file" id="importFile" accept="application/json" class="hidden">
-      <button type="button" id="resetBtn" class="btn btn-danger-outline btn-block">この旅行をリセット</button>
+      <button type="button" id="resetBtn" class="btn btn-danger-outline btn-block">この旅行を削除</button>
     </div>
     <div class="sheet-footer">
       <button type="button" id="settingsSaveBtn" class="btn btn-primary">保存</button>
@@ -505,8 +573,10 @@ const TYPE_META = {
 /* ================= State ================= */
 let state = {
   trip: null,
+  trips: {},
+  activeTripId: null,
   activeDayIndex: 0,
-  settings: { apiKey:'' }
+  settings: { apiKey:'', apiKey2:'' }
 };
 const chatSessions = {};
 let currentChatKey = null;
@@ -575,21 +645,89 @@ function computeGap(prevCard, nextCard){
 }
 
 /* ================= Persistence ================= */
-function persistTrip(){ storeSet('trip', state.trip); }
+function persistTrip(){
+  if(state.trip && state.activeTripId){ state.trips[state.activeTripId] = state.trip; }
+  storeSet('trips', state.trips);
+  storeSet('activeTripId', state.activeTripId);
+}
 function persistSettings(){ storeSet('settings', state.settings); }
 
 /* ================= Render: shell ================= */
 function showScreen(name){
+  document.getElementById('tripList').classList.toggle('hidden', name!=='tripList');
   document.getElementById('onboarding').classList.toggle('hidden', name!=='onboarding');
   document.getElementById('main').classList.toggle('hidden', name!=='main');
   document.getElementById('fabs').classList.toggle('hidden', name!=='main');
 }
 function render(){
-  if(!state.trip){ showScreen('onboarding'); return; }
+  if(!state.trip){
+    if(Object.keys(state.trips).length > 0){
+      openTripList();
+      return;
+    }
+    document.getElementById('obBackBtn').classList.add('hidden');
+    showScreen('onboarding');
+    return;
+  }
   showScreen('main');
   renderHeader();
   renderDayTabs();
   renderDayContent();
+}
+function openTripList(){
+  showScreen('tripList');
+  document.getElementById('tripListCloseBtn').classList.toggle('hidden', !state.trip);
+  renderTripList();
+}
+function renderTripList(){
+  const wrap = document.getElementById('tripListItems');
+  const ids = Object.keys(state.trips);
+  if(ids.length === 0){
+    wrap.innerHTML = '<div class="triplist-empty">まだ旅行がありません。下のボタンから作成してください。</div>';
+    return;
+  }
+  const sorted = ids.map(id=>state.trips[id]).sort((a,b)=> (a.startDate||'').localeCompare(b.startDate||''));
+  let html = '';
+  sorted.forEach(trip=>{
+    const isActive = trip.id === state.activeTripId;
+    const nights = trip.nights||0;
+    const dateRange = trip.startDate ? fmtDateShort(trip.startDate) + (nights>0 ? '〜'+fmtDateShort(addDaysStr(trip.startDate, nights)) : '') : '';
+    html += '<div class="trip-item'+(isActive?' active':'')+'" data-id="'+trip.id+'">'
+      + '<div class="trip-item-main">'
+      + '<div class="trip-item-name">'+escapeHtml(trip.name || '旅行')+'</div>'
+      + '<div class="trip-item-meta">'+dateRange+'・'+(nights+1)+'日間</div>'
+      + '</div>'
+      + (isActive ? '<span class="trip-item-badge">表示中</span>' : '')
+      + '<button type="button" class="icon-btn trip-item-delete" data-delete="'+trip.id+'" aria-label="削除">🗑</button>'
+      + '</div>';
+  });
+  wrap.innerHTML = html;
+}
+function selectTrip(id){
+  const trip = state.trips[id];
+  if(!trip) return;
+  state.trip = trip;
+  state.activeTripId = id;
+  state.activeDayIndex = 0;
+  persistTrip();
+  render();
+}
+async function deleteTrip(id){
+  const trip = state.trips[id];
+  if(!trip) return;
+  const ok = await showConfirmDialog('「'+(trip.name||'この旅行')+'」を削除します。よろしいですか？');
+  if(!ok) return;
+  delete state.trips[id];
+  if(state.activeTripId === id){
+    state.activeTripId = null;
+    state.trip = null;
+  }
+  persistTrip();
+  if(!state.trip){
+    render();
+  } else {
+    renderTripList();
+  }
 }
 function renderHeader(){
   document.getElementById('tripName').textContent = state.trip.name || '旅行';
@@ -676,6 +814,33 @@ function renderDayContent(){
 }
 
 /* ================= Sheets ================= */
+function showConfirmDialog(message, okLabel){
+  return new Promise((resolve)=>{
+    const box = document.getElementById('confirmBox');
+    const overlay = document.getElementById('confirmOverlay');
+    document.getElementById('confirmBoxMessage').textContent = message;
+    document.getElementById('confirmBoxOk').textContent = okLabel || '削除する';
+    requestAnimationFrame(()=>{
+      box.classList.add('open');
+      overlay.classList.add('open');
+    });
+    const okBtn = document.getElementById('confirmBoxOk');
+    const cancelBtn = document.getElementById('confirmBoxCancel');
+    function cleanup(result){
+      box.classList.remove('open');
+      overlay.classList.remove('open');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onCancel);
+      resolve(result);
+    }
+    function onOk(){ cleanup(true); }
+    function onCancel(){ cleanup(false); }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onCancel);
+  });
+}
 function openSheet(id){
   openSheetId = id;
   document.getElementById('overlay').classList.remove('hidden');
@@ -695,6 +860,7 @@ function closeSheet(id){
     document.getElementById('overlay').classList.add('hidden');
   }, 200);
   openSheetId = null;
+  if(id==='chatModal' && voiceListening && voiceRecognition){ voiceRecognition.stop(); }
 }
 
 /* ================= Card modal ================= */
@@ -765,9 +931,10 @@ function saveCard(){
     setTimeout(()=>offerCascadeAdjustment(cascadeCandidate), 350);
   }
 }
-function deleteCard(){
+async function deleteCard(){
   if(!editingCardId) return;
-  if(!confirm('この予定を削除しますか？')) return;
+  const ok = await showConfirmDialog('この予定を削除しますか？');
+  if(!ok) return;
   const dayIdx = Number(document.getElementById('cardForm').dataset.day);
   const day = state.trip.days[dayIdx];
   day.cards = day.cards.filter(c=>c.id!==editingCardId);
@@ -786,6 +953,14 @@ function moveCard(dayIdx, cardId, dir){
   day.cards[newIdx] = tmp;
   persistTrip();
   renderDayContent();
+  const a = day.cards[idx], b = day.cards[newIdx];
+  offerAdjustment({
+    kind:'reorder',
+    dayIndex: dayIdx,
+    fromCardId: day.cards[Math.min(idx,newIdx)].id,
+    titleA: a.title || '予定',
+    titleB: b.title || '予定'
+  });
 }
 function togglePin(dayIdx, cardId){
   const day = state.trip.days[dayIdx];
@@ -811,6 +986,11 @@ function buildScopeContext(scope){
     const relevant = idx>-1 ? day.cards.slice(idx) : day.cards;
     return { 日付: day.date, 人数, 相談内容:'先頭の予定の時刻が変更されたため、それ以降の予定を実際の時刻表に基づいて再調整する', '対象の予定一覧（時刻順・先頭が今変更された予定）': relevant };
   }
+  if(scope.type==='reorder'){
+    const idx = day.cards.findIndex(c=>c.id===scope.fromCardId);
+    const relevant = idx>-1 ? day.cards.slice(idx) : day.cards;
+    return { 日付: day.date, 人数, 相談内容:'2つの予定の順番を入れ替えたため、実際の時刻表・移動手段を調べたうえで、この範囲の時刻を先頭から順に再計算する', '対象の予定一覧（時刻順・先頭がその範囲の最初の予定）': relevant };
+  }
   return { 日付: day.date, 人数, 相談内容:'この日全体のスケジュール調整', 予定一覧: day.cards };
 }
 function scopeBannerText(scope){
@@ -824,6 +1004,9 @@ function scopeBannerText(scope){
   }
   if(scope.type==='cascade'){
     return '🔄 時刻変更にともなう、以降の予定の自動調整';
+  }
+  if(scope.type==='reorder'){
+    return '🔀 予定の順番入れ替えにともなう時間の再計算';
   }
   const pinnedCount = day.cards.filter(c=>c.pinned).length;
   return '📅 '+(scope.dayIndex+1)+'日目 ('+fmtDateShort(day.date)+') 全体について' + (pinnedCount ? '（📌時刻固定 '+pinnedCount+'件）' : '');
@@ -844,17 +1027,32 @@ function openChat(scope){
 function openChatForConnector(dayIdx, prevId, nextId){
   openChat({ type:'connector', dayIndex:dayIdx, prevId:prevId, nextId:nextId });
 }
-function offerCascadeAdjustment(ctx){
+function offerAdjustment(ctx){
   cascadePendingContext = ctx;
-  document.getElementById('cascadeBannerText').textContent = '「'+ctx.title+'」の時刻が変わりました。これ以降の予定を時刻表で確認して自動調整しますか？';
+  const text = ctx.kind==='reorder'
+    ? '「'+ctx.titleA+'」と「'+ctx.titleB+'」の順番を入れ替えました。時刻表を調べて時間を再計算しますか？'
+    : '「'+ctx.title+'」の時刻が変わりました。これ以降の予定を時刻表で確認して自動調整しますか？';
+  document.getElementById('cascadeBannerText').textContent = text;
   const el = document.getElementById('cascadeBanner');
   el.classList.remove('hidden');
   requestAnimationFrame(()=>el.classList.add('show'));
+}
+function offerCascadeAdjustment(ctx){
+  offerAdjustment(Object.assign({ kind:'cascade' }, ctx));
 }
 function hideCascadeBanner(){
   const el = document.getElementById('cascadeBanner');
   el.classList.remove('show');
   setTimeout(()=>el.classList.add('hidden'), 200);
+}
+function startAdjustment(ctx){
+  if(ctx.kind==='reorder'){
+    openChat({ type:'reorder', dayIndex:ctx.dayIndex, fromCardId:ctx.fromCardId });
+    document.getElementById('chatInput').value = '「'+ctx.titleA+'」と「'+ctx.titleB+'」の順番を入れ替えました。実際の時刻表を調べたうえで、この範囲の予定の時刻・移動手段を先頭から順に無理なく間に合うよう再計算する提案をしてください。';
+    sendChatMessage();
+    return;
+  }
+  startCascadeAdjustment(ctx);
 }
 function startCascadeAdjustment(ctx){
   openChat({ type:'cascade', dayIndex:ctx.dayIndex, fromCardId:ctx.fromCardId });
@@ -924,6 +1122,56 @@ function cardLabelForSuggestion(s){
   const c = findCardById(s.cardId);
   return c ? (c.title||'予定') : '該当の予定';
 }
+
+/* ================= Voice input (Web Speech API) ================= */
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+let voiceRecognition = null;
+let voiceListening = false;
+function initVoiceInput(){
+  const micBtn = document.getElementById('chatMicBtn');
+  if(!SpeechRecognitionCtor){
+    micBtn.classList.add('hidden');
+    return;
+  }
+  micBtn.classList.remove('hidden');
+  voiceRecognition = new SpeechRecognitionCtor();
+  voiceRecognition.lang = 'ja-JP';
+  voiceRecognition.interimResults = true;
+  voiceRecognition.continuous = false;
+  let baseText = '';
+  voiceRecognition.onstart = ()=>{
+    voiceListening = true;
+    baseText = document.getElementById('chatInput').value;
+    if(baseText && !/[\s　]$/.test(baseText)) baseText += '　';
+    micBtn.classList.add('listening');
+  };
+  voiceRecognition.onresult = (e)=>{
+    let text = '';
+    for(let i=0; i<e.results.length; i++){
+      text += e.results[i][0].transcript;
+    }
+    document.getElementById('chatInput').value = baseText + text;
+  };
+  voiceRecognition.onerror = (e)=>{
+    voiceListening = false;
+    micBtn.classList.remove('listening');
+    if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+      alert('マイクを使用できませんでした。この画面がサンドボックス化されている場合（Claudeのアーティファクト内など）、マイクへのアクセスが許可されないことがあります。ホーム画面に追加するか、単体のブラウザタブで開いてお試しください。');
+    }
+  };
+  voiceRecognition.onend = ()=>{
+    voiceListening = false;
+    micBtn.classList.remove('listening');
+  };
+  micBtn.addEventListener('click', ()=>{
+    if(voiceListening){
+      voiceRecognition.stop();
+    } else {
+      try{ voiceRecognition.start(); }catch(e){ /* already running等は無視 */ }
+    }
+  });
+}
+
 function setChatLoading(loading){
   const wrap = document.getElementById('chatMessages');
   let el = document.getElementById('chatLoadingMsg');
@@ -959,7 +1207,11 @@ function buildSystemPrompt(scopeContext){
   + '- 既存の予定の削除は提案しないでください。\n\n'
   + '# 現在の旅程データ（対象範囲）\n' + JSON.stringify(scopeContext);
 }
-function extractText(res){
+function extractText(provider, res){
+  if(provider === 'openai'){
+    if(!res || !res.choices || !res.choices[0]) return '';
+    return (res.choices[0].message && res.choices[0].message.content) || '';
+  }
   if(!res || !res.candidates || !res.candidates[0]) return '';
   const parts = res.candidates[0].content && res.candidates[0].content.parts;
   if(!parts) return '';
@@ -992,10 +1244,29 @@ async function callGeminiModel(model, contents, system){
   });
   return res;
 }
-async function callGemini(messages, system){
+async function callOpenAI(messages, system){
+  const apiKey2 = state.settings.apiKey2;
+  const oaMessages = [{ role:'system', content: system }].concat(
+    messages.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
+  );
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization': 'Bearer ' + apiKey2
+    },
+    body: JSON.stringify({
+      model: 'gpt-5-mini',
+      messages: oaMessages
+    })
+  });
+  return res;
+}
+async function callAI(messages, system){
   const apiKey = state.settings.apiKey;
-  if(!apiKey){
-    const err = new Error('AI相談にはGemini APIキーが必要です。設定画面から入力してください。');
+  const apiKey2 = state.settings.apiKey2;
+  if(!apiKey && !apiKey2){
+    const err = new Error('AI相談にはGemini APIキー、またはOpenAI APIキーが必要です。設定画面から入力してください。');
     err.needsKey = true;
     throw err;
   }
@@ -1003,22 +1274,37 @@ async function callGemini(messages, system){
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }]
   }));
-  // レート制限（429）に達した場合は、より軽量なモデルへ自動的に切り替えて再試行する
-  const modelChain = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
   let lastRes = null;
-  for(let i=0; i<modelChain.length; i++){
-    const model = modelChain[i];
-    lastRes = await callGeminiModel(model, contents, system);
-    if(lastRes.ok){
-      if(i > 0) state.lastUsedFallbackModel = model;
-      return await lastRes.json();
+  let lastProvider = null;
+  // 1) Gemini: 通常モデル→軽量モデルの順に試す（429の場合のみ切り替え）
+  if(apiKey){
+    const modelChain = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
+    for(let i=0; i<modelChain.length; i++){
+      const model = modelChain[i];
+      lastRes = await callGeminiModel(model, contents, system);
+      lastProvider = 'gemini';
+      if(lastRes.ok){
+        if(i > 0) state.lastUsedFallbackModel = model;
+        return { provider:'gemini', data: await lastRes.json() };
+      }
+      if(lastRes.status !== 429) break;
     }
-    if(lastRes.status !== 429) break; // 429以外は切り替えても解決しないので即エラーへ
   }
-  const status = lastRes.status;
-  let msg = 'APIの呼び出しに失敗しました（コード '+status+'）。';
+  // 2) Geminiが利用不可（未設定 or 全モデルで429/エラー）で、OpenAIキーがあればChatGPTへ切り替え
+  const shouldTryOpenAI = apiKey2 && (!apiKey || (lastRes && lastRes.status === 429));
+  if(shouldTryOpenAI){
+    const oaRes = await callOpenAI(messages, system);
+    lastRes = oaRes;
+    lastProvider = 'openai';
+    if(oaRes.ok){
+      if(apiKey) state.lastUsedFallbackProvider = 'openai';
+      return { provider:'openai', data: await oaRes.json() };
+    }
+  }
+  const status = lastRes ? lastRes.status : 0;
+  let msg = 'APIの呼び出しに失敗しました（コード '+status+'、'+(lastProvider==='openai'?'OpenAI':'Gemini')+'）。';
   if(status === 429){
-    msg += 'すべてのモデルでリクエスト数または利用量の上限に達しています。しばらく待ってから再度お試しください。';
+    msg += '利用量の上限に達しています。しばらく待ってから再度お試しください。';
   } else if(status === 401 || status === 403){
     msg += 'APIキーが正しくないか、権限がありません。設定画面でご確認ください。';
   } else if(status === 404){
@@ -1032,6 +1318,7 @@ async function sendChatMessage(){
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
   if(!text) return;
+  if(voiceListening && voiceRecognition){ voiceRecognition.stop(); }
   input.value = '';
   const session = chatSessions[currentChatKey];
   session.messages.push({ role:'user', content:text });
@@ -1042,11 +1329,13 @@ async function sendChatMessage(){
     const apiMessages = session.messages
       .filter(m=>m.role==='user'||m.role==='assistant')
       .map(m=>({ role:m.role, content:m.content }));
-    const res = await callGemini(apiMessages, sys);
-    const raw = extractText(res);
+    const result = await callAI(apiMessages, sys);
+    const raw = extractText(result.provider, result.data);
     const { cleanText, suggestions } = parseSuggestions(raw);
     let finalText = cleanText;
-    if(state.lastUsedFallbackModel){
+    if(result.provider === 'openai' && state.settings.apiKey){
+      finalText = '（Geminiの利用上限に達したため、ChatGPTで応答しました）\n\n' + finalText;
+    } else if(state.lastUsedFallbackModel){
       finalText = '（通常モデルが混雑していたため、軽量モデルで応答しました）\n\n' + finalText;
       state.lastUsedFallbackModel = null;
     }
@@ -1159,6 +1448,7 @@ function openSettings(){
   document.getElementById('stAdults').value = (typeof state.trip.adults==='number') ? state.trip.adults : 2;
   document.getElementById('stChildren').value = (typeof state.trip.children==='number') ? state.trip.children : 0;
   document.getElementById('stApiKey').value = state.settings.apiKey || '';
+  document.getElementById('stApiKey2').value = state.settings.apiKey2 || '';
   openSheet('settingsModal');
 }
 function regenerateDays(newStart, newNights){
@@ -1183,6 +1473,7 @@ function saveSettings(){
   state.trip.adults = document.getElementById('stAdults').value ? Number(document.getElementById('stAdults').value) : 0;
   state.trip.children = document.getElementById('stChildren').value ? Number(document.getElementById('stChildren').value) : 0;
   state.settings.apiKey = document.getElementById('stApiKey').value.trim();
+  state.settings.apiKey2 = document.getElementById('stApiKey2').value.trim();
   persistTrip();
   persistSettings();
   closeSheet('settingsModal');
@@ -1205,7 +1496,11 @@ function importData(file){
     try{
       const data = JSON.parse(reader.result);
       if(!data.startDate || !Array.isArray(data.days)) throw new Error('形式が正しくありません');
+      const id = uid();
+      data.id = id;
+      state.trips[id] = data;
       state.trip = data;
+      state.activeTripId = id;
       state.activeDayIndex = 0;
       persistTrip();
       closeSheet('settingsModal');
@@ -1216,10 +1511,14 @@ function importData(file){
   };
   reader.readAsText(file);
 }
-function resetTrip(){
-  if(!confirm('この旅行のデータを削除します。よろしいですか？')) return;
+async function resetTrip(){
+  const ok = await showConfirmDialog('この旅行のデータを削除します。よろしいですか？');
+  if(!ok) return;
+  const id = state.activeTripId;
+  if(id) delete state.trips[id];
   state.trip = null;
-  storeSet('trip', null);
+  state.activeTripId = null;
+  persistTrip();
   closeSheet('settingsModal');
   render();
 }
@@ -1266,7 +1565,9 @@ function createTripFromOnboarding(){
     const nights = document.getElementById('obNights').value;
     const adults = document.getElementById('obAdults').value ? Number(document.getElementById('obAdults').value) : 0;
     const children = document.getElementById('obChildren').value ? Number(document.getElementById('obChildren').value) : 0;
-    state.trip = {
+    const id = uid();
+    const trip = {
+      id: id,
       name: name,
       startDate: startDate,
       nights: parseInt(nights,10)||0,
@@ -1274,9 +1575,21 @@ function createTripFromOnboarding(){
       children: children,
       days: generateDays(startDate, nights)
     };
+    state.trips[id] = trip;
+    state.trip = trip;
+    state.activeTripId = id;
     state.activeDayIndex = 0;
     persistTrip();
     render();
+}
+function openOnboardingForNewTrip(){
+  document.getElementById('obBackBtn').classList.toggle('hidden', Object.keys(state.trips).length===0);
+  document.getElementById('onboardingForm').reset();
+  document.getElementById('obStart').value = todayStr();
+  document.getElementById('obAdults').value = 2;
+  document.getElementById('obNights').value = 2;
+  document.getElementById('obChildren').value = 0;
+  showScreen('onboarding');
 }
 function bindEvents(){
   document.getElementById('onboardingForm').addEventListener('submit', e=>{
@@ -1288,6 +1601,21 @@ function bindEvents(){
     createTripFromOnboarding();
   });
   document.getElementById('obStart').value = todayStr();
+  document.getElementById('obBackBtn').addEventListener('click', ()=>{
+    if(state.trip){ render(); } else { openTripList(); }
+  });
+
+  document.getElementById('tripSwitchBtn').addEventListener('click', openTripList);
+  document.getElementById('tripListCloseBtn').addEventListener('click', ()=>{
+    if(state.trip) render();
+  });
+  document.getElementById('newTripBtn').addEventListener('click', openOnboardingForNewTrip);
+  document.getElementById('tripListItems').addEventListener('click', e=>{
+    const delBtn = e.target.closest('[data-delete]');
+    if(delBtn){ deleteTrip(delBtn.dataset.delete); return; }
+    const item = e.target.closest('.trip-item');
+    if(item){ selectTrip(item.dataset.id); }
+  });
 
   document.getElementById('dayTabs').addEventListener('click', e=>{
     const btn = e.target.closest('.day-tab');
@@ -1353,7 +1681,7 @@ function bindEvents(){
 
   document.getElementById('cascadeBannerYes').addEventListener('click', ()=>{
     hideCascadeBanner();
-    if(cascadePendingContext){ startCascadeAdjustment(cascadePendingContext); cascadePendingContext = null; }
+    if(cascadePendingContext){ startAdjustment(cascadePendingContext); cascadePendingContext = null; }
   });
   document.getElementById('cascadeBannerNo').addEventListener('click', ()=>{
     hideCascadeBanner();
@@ -1374,13 +1702,32 @@ function init(){
   // so buttons work right away even if window.storage/localStorage is slow
   // or unavailable in the current environment.
   bindEvents();
+  initVoiceInput();
   setupManifest();
   loadSavedData();
 }
 async function loadSavedData(){
-  const savedTrip = await storeGet('trip');
+  const savedTrips = await storeGet('trips');
+  const savedActiveId = await storeGet('activeTripId');
   const savedSettings = await storeGet('settings');
-  if(savedTrip) state.trip = savedTrip;
+  if(savedTrips){
+    state.trips = savedTrips;
+    if(savedActiveId && state.trips[savedActiveId]){
+      state.activeTripId = savedActiveId;
+      state.trip = state.trips[savedActiveId];
+    }
+  } else {
+    // 旧バージョン（単一旅行のみ保存）からの移行
+    const legacyTrip = await storeGet('trip');
+    if(legacyTrip){
+      const id = legacyTrip.id || uid();
+      legacyTrip.id = id;
+      state.trips = { [id]: legacyTrip };
+      state.trip = legacyTrip;
+      state.activeTripId = id;
+      persistTrip();
+    }
+  }
   if(savedSettings) state.settings = savedSettings;
   render();
 }
